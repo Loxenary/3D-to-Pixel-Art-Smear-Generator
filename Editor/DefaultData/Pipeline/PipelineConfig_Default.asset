@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a7246757bac60a4fabc83114955ebc0, type: 3}
+  m_Name: PipelineConfig_Default
+  m_EditorClassIdentifier: SmearFramework::SmearFramework.PipelineConfig
+  _velocity: {fileID: 11400000, guid: 1a35ffcfacc378744ac5cbd0d205b36c, type: 2}
+  _smearEffects: {fileID: 11400000, guid: 7e724e8176d096349abab14fa7f821d2, type: 2}
+  _output: {fileID: 11400000, guid: 0916e1fcb4c4adf4a85f25d22d9a746f, type: 2}
+  _postProcess: {fileID: 11400000, guid: 66bc750c6ed606e44bc2d552194c34b6, type: 2}
+  _diagnostics: {fileID: 11400000, guid: 581ad8e551062e84baa653a244437fb4, type: 2}

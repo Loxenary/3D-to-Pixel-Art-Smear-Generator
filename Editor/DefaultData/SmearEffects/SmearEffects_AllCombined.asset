@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a8e1743da109c64188baf05f5e5dda1, type: 3}
+  m_Name: SmearEffects_AllCombined
+  m_EditorClassIdentifier: SmearFramework::SmearFramework.SmearEffectsConfig
+  _speedThreshold: 3
+  _enableElongated: 1
+  _elongationMax: 0.25
+  _elongatedUseNoise: 1
+  _noiseScale: 1.2
+  _enableMultiples: 1
+  _pastCopies: 2
+  _futureCopies: 1
+  _overlapCount: 1
+  _enableMotionLines: 1
+  _motionLineSeeds: 15
+  _motionLineMaxLength: 1
+  _motionLineThickness: 0.008
+  _motionLineColor: {r: 0.1, g: 0.1, b: 0.1, a: 0.4}
