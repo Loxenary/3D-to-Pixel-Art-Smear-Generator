@@ -5,7 +5,7 @@ namespace SmearFramework
     /// <summary>
     /// Animation sampling settings for velocity extraction. Lower FPS = choppier but more stylized (pixel art usually 8-12). Smoothing window reduces noise in the motion offsets, too low causes jitter, too high blurs fast movements.
     /// </summary>
-    [CreateAssetMenu(fileName = "VelocityConfig", menuName = "Smear Framework/Config/Velocity")]
+    [CreateAssetMenu(fileName = "VelocityConfig", menuName = "Smear Generator/Config/Velocity")]
     public class VelocityConfig : ScriptableObject
     {
         [Tooltip("How many frames per second are sampled from the animation.\n8 = choppy, very stylized retro feel\n12 = standard pixel art speed (recommended)\n24 = smooth but generates a much larger sprite sheet")]

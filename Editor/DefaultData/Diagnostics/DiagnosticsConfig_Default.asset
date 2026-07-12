@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: DiagnosticsConfig_Default
   m_EditorClassIdentifier: SmearFramework::SmearFramework.DiagnosticsConfig
   _exportDiagnostics: 0
-  _diagnosticsPath: Assets/SmearFramework.Generated/Diagnostics/
+  _diagnosticsPath: Assets/SmearGenerator.Generated/Diagnostics/

@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Serialization;
 namespace SmearFramework
 {
-    [CreateAssetMenu(fileName = "PostProcessConfig", menuName = "Smear Framework/Config/Post Process")]
+    [CreateAssetMenu(fileName = "PostProcessConfig", menuName = "Smear Generator/Config/Post Process")]
     public class PostProcessConfig : ScriptableObject
     {
         // measured in CIELAB space so perceptually uniform

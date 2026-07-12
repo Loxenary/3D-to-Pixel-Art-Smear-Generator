@@ -3,7 +3,7 @@ using UnityEngine;
 namespace SmearFramework
 {
     /// <summary>3D smear output settings used when the Smear Frame phase runs by itself.</summary>
-    [CreateAssetMenu(fileName = "SmearOutputConfig", menuName = "Smear Framework/Config/Smear Output")]
+    [CreateAssetMenu(fileName = "SmearOutputConfig", menuName = "Smear Generator/Config/Smear Output")]
     public class SmearOutputConfig : ScriptableObject
     {
         [Tooltip("Where the 3D smear prefab is saved. Must start with Assets/.")]

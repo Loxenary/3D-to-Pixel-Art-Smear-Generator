@@ -22,7 +22,7 @@ MonoBehaviour:
   _pixelsPerUnit: 32
   _loopPlayback: 1
   _pivotNormalized: {x: 0.5, y: 0.5}
-  _outputDirectory: Assets/SmearFramework.Generated/Output
+  _outputDirectory: Assets/SmearGenerator.Generated/Output
   _folderName: test
   _prefix: fighter_
   _suffix: _alter

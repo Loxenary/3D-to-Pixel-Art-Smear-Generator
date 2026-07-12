@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace SmearFramework
 {
-    [CreateAssetMenu(fileName = "OutputConfig", menuName = "Smear Framework/Config/Output")]
+    [CreateAssetMenu(fileName = "OutputConfig", menuName = "Smear Generator/Config/Output")]
     public class OutputConfig : ScriptableObject
     {
         // render at high res first, then downscale to preserve detail

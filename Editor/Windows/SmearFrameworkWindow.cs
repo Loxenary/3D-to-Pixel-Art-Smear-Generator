@@ -126,10 +126,10 @@ namespace SmearFramework.Editor
 
         #region GUI
 
-        [MenuItem("Smear Framework/Open Smear Framework %#s")]
+        [MenuItem("Smear Generator/Open Smear Generator %#s")]
         static void Open()
         {
-            var w = GetWindow<SmearFrameworkWindow>("Smear Framework");
+            var w = GetWindow<SmearFrameworkWindow>("Smear Generator");
             w.minSize = new Vector2(300, 300);
         }
 
@@ -853,7 +853,7 @@ namespace SmearFramework.Editor
             }
             catch (System.Exception ex)
             {
-                Debug.LogError("[SmearFramework] 3D export failed: " + ex);
+                Debug.LogError("[SmearGenerator] 3D export failed: " + ex);
                 _status = "Temporary 3D preview failed -- see console";
                 return null;
             }

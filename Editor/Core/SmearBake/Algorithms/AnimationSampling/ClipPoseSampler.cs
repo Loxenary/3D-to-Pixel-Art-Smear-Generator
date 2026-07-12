@@ -7,8 +7,8 @@ namespace SmearFramework.AnimationSampling
     /// <summary>Samples clip poses directly or through Mecanim retargeting.</summary>
     public sealed class ClipPoseSampler : System.IDisposable
     {
-        const string HumanoidSetupMessage = "Humanoid clips need a target with a valid humanoid avatar. Run Smear Framework/FBX Avatar Setup, assign Character Fbx and Clip Fbx, then click Prepare Retarget Pair.";
-        const string GenericSetupMessage = "Generic clips only work on the same rig hierarchy. For cross-character clips, run Smear Framework/FBX Avatar Setup, assign Character Fbx and Clip Fbx, then click Prepare Retarget Pair.";
+        const string HumanoidSetupMessage = "Humanoid clips need a target with a valid humanoid avatar. Run Smear Generator/FBX Avatar Setup, assign Character Fbx and Clip Fbx, then click Prepare Retarget Pair.";
+        const string GenericSetupMessage = "Generic clips only work on the same rig hierarchy. For cross-character clips, run Smear Generator/FBX Avatar Setup, assign Character Fbx and Clip Fbx, then click Prepare Retarget Pair.";
 
         private readonly GameObject _target;
         private readonly AnimationClip _clip;

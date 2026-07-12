@@ -12,4 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 173861a23d414ea8ab3e09ef49636e99, type: 3}
   m_Name: SmearOutputConfig_Default
   m_EditorClassIdentifier: SmearFramework::SmearFramework.SmearOutputConfig
-  _outputDirectory: Assets/SmearFramework.Generated/Output
+  _outputDirectory: Assets/SmearGenerator.Generated/Output

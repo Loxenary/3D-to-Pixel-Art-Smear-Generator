@@ -11,7 +11,7 @@ namespace SmearFramework.Editor
         [SerializeField] private string _folderPath;
         private string _status;
 
-        [MenuItem("Smear Framework/FBX Texture Fixer")]
+        [MenuItem("Smear Generator/FBX Texture Fixer")]
         static void Open()
         {
             var window = GetWindow<FbxTextureFixerWindow>("FBX Texture Fixer");
@@ -77,9 +77,9 @@ namespace SmearFramework.Editor
             var result = FbxTextureFixer.Fix(fbxPath, _folderName, _folderPath);
             _status = result.Message;
             if (result.Success)
-                Debug.Log("[SmearFramework] " + result.Message);
+                Debug.Log("[SmearGenerator] " + result.Message);
             else
-                Debug.LogWarning("[SmearFramework] " + result.Message);
+                Debug.LogWarning("[SmearGenerator] " + result.Message);
         }
     }
 }

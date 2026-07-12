@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace SmearFramework
 {
-    [CreateAssetMenu(fileName = "PipelineConfig", menuName = "Smear Framework/Config/Pipeline Config")]
+    [CreateAssetMenu(fileName = "PipelineConfig", menuName = "Smear Generator/Config/Pipeline Config")]
     public class PipelineConfig : ScriptableObject
     {
         [SerializeField] private VelocityConfig _velocity;

@@ -40,7 +40,7 @@ namespace SmearFramework.Tests
                 ROOT, "Spin Kick(Clone)", "mixamo.com", "pixel");
 
             Assert.AreEqual(
-                "Assets/SmearFramework.Generated/Temp/Tests/PixelAnimationPackageExporterTests/Spin_Kick/mixamo_com/pixel",
+                "Assets/SmearGenerator.Generated/Temp/Tests/PixelAnimationPackageExporterTests/Spin_Kick/mixamo_com/pixel",
                 folder);
         }
 

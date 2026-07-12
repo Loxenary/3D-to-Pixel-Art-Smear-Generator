@@ -3,8 +3,8 @@ namespace SmearFramework
     // Central asset paths for the framework's source, editor tools, and generated assets.
     public static class SmearFrameworkPaths
     {
-        public const string Root = "Packages/com.davis.smear-framework";
-        public const string GeneratedRoot = "Assets/SmearFramework.Generated";
+        public const string Root = "Packages/com.davis.smear-generator";
+        public const string GeneratedRoot = "Assets/SmearGenerator.Generated";
         public const string Output = GeneratedRoot + "/Output";
         public const string TempOutput = GeneratedRoot + "/Temp";
         public const string ImportedPackages = GeneratedRoot + "/ImportedPackages";

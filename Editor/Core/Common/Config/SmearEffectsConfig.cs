@@ -5,7 +5,7 @@ namespace SmearFramework
     /// <summary>
     /// Controls which smear effects are active and how strong they are. Each effect can be toggled independently for A/B testing individual styles. Threshold controls the minimum bone speed before any smear kicks in.
     /// </summary>
-    [CreateAssetMenu(fileName = "SmearEffectsConfig", menuName = "Smear Framework/Config/Smear Effects")]
+    [CreateAssetMenu(fileName = "SmearEffectsConfig", menuName = "Smear Generator/Config/Smear Effects")]
     public class SmearEffectsConfig : ScriptableObject
     {
         [Tooltip("Master multiplier for smear strength across all enabled effects.\n1 = authored strength\n2 = stronger displacement / opacity / line length\n0.5 = softer smear overall")]

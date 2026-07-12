@@ -12,7 +12,7 @@ namespace SmearFramework.Editor
         [SerializeField] private GameObject _clipInput;
         private string _status;
 
-        [MenuItem("Smear Framework/FBX Avatar Setup")]
+        [MenuItem("Smear Generator/FBX Avatar Setup")]
         static void Open()
         {
             var window = GetWindow<FbxAvatarSetupWindow>("FBX Avatar Setup");
@@ -107,9 +107,9 @@ namespace SmearFramework.Editor
         {
             _status = result.Message;
             if (result.Success)
-                Debug.Log("[SmearFramework] " + result.Message);
+                Debug.Log("[SmearGenerator] " + result.Message);
             else
-                Debug.LogWarning("[SmearFramework] " + result.Message);
+                Debug.LogWarning("[SmearGenerator] " + result.Message);
         }
     }
 }

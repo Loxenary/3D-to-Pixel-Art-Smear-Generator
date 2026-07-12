@@ -5,7 +5,7 @@ namespace SmearFramework
     /// <summary>
     /// Controls whether the pipeline exports debug artifacts (heatmaps, CSVs, per-frame diffs). Separated from PipelineConfig so diagnostics can be toggled without touching bake settings.
     /// </summary>
-    [CreateAssetMenu(fileName = "DiagnosticsConfig", menuName = "Smear Framework/Config/Diagnostics")]
+    [CreateAssetMenu(fileName = "DiagnosticsConfig", menuName = "Smear Generator/Config/Diagnostics")]
     public class DiagnosticsConfig : ScriptableObject
     {
         [Tooltip("Exports intermediate files (per-frame PNGs, velocity CSVs, kernel JSON) to disk after each bake. Useful for debugging the pipeline -- disable during normal use, bake will be noticeably faster.")]
