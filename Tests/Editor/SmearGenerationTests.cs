@@ -77,6 +77,47 @@ namespace SmearFramework.Tests
             Assert.That(output.MotionLineGeometry[2].vertexCount, Is.GreaterThan(0));
         }
 
+        // Confirm seed trajectory speed can emit lines without a bone-ribbon offset
+        [Test]
+        public void MotionLines_UsesSpeedWhenMotionOffsetIsZero()
+        {
+            var ctx = CreateTestContext(velocity: new Vector3(10, 0, 0), motionOffset: 0f);
+            var effects = ScriptableObject.CreateInstance<SmearEffectsConfig>();
+            ConfigureMotionLines(ctx.Config, effects, 5f);
+            var output = CreateBaseSmearOutput(ctx);
+
+            new MotionLineStrategy().Apply(ctx, output, 2);
+
+            Assert.IsNotNull(output.MotionLineGeometry[2]);
+            Assert.That(output.MotionLineGeometry[2].vertexCount, Is.GreaterThan(0));
+        }
+
+        // Confirm the maximum-length control changes the generated trail span
+        [Test]
+        public void MotionLines_MaxLengthChangesTrailBounds()
+        {
+            var shortCtx = CreateTestContext(velocity: new Vector3(10, 0, 0), motionOffset: 0f);
+            var longCtx = CreateTestContext(velocity: new Vector3(10, 0, 0), motionOffset: 0f);
+            var shortEffects = ScriptableObject.CreateInstance<SmearEffectsConfig>();
+            var longEffects = ScriptableObject.CreateInstance<SmearEffectsConfig>();
+            ConfigureMotionLines(shortCtx.Config, shortEffects, 0.5f);
+            ConfigureMotionLines(longCtx.Config, longEffects, 5f);
+            var shortOutput = CreateBaseSmearOutput(shortCtx);
+            var longOutput = CreateBaseSmearOutput(longCtx);
+
+            var strategy = new MotionLineStrategy();
+            strategy.Apply(shortCtx, shortOutput, 2);
+            strategy.Apply(longCtx, longOutput, 2);
+
+            var shortMesh = shortOutput.MotionLineGeometry[2];
+            var longMesh = longOutput.MotionLineGeometry[2];
+            Assert.IsNotNull(shortMesh);
+            Assert.IsNotNull(longMesh);
+            shortMesh.RecalculateBounds();
+            longMesh.RecalculateBounds();
+            Assert.That(longMesh.bounds.size.x, Is.GreaterThan(shortMesh.bounds.size.x));
+        }
+
         [Test]
         public void MultipleSmear_NeutralOffsets_ProducesTransparentGhostPerEq12()
         {
@@ -238,6 +279,21 @@ namespace SmearFramework.Tests
             var ctx = new PipelineContext(config, target, null);
             PopulateMotionData(ctx, target.GetComponent<SkinnedMeshRenderer>().sharedMesh.vertices, velocity, motionOffset);
             return ctx;
+        }
+
+        // Configure the motion-line controls used by geometry tests
+        private void ConfigureMotionLines(PipelineConfig config, SmearEffectsConfig effects, float maxLength)
+        {
+            var effectsSo = new SerializedObject(effects);
+            effectsSo.FindProperty("_enableMotionLines").boolValue = true;
+            effectsSo.FindProperty("_motionLineSpeedThreshold").floatValue = 0f;
+            effectsSo.FindProperty("_motionLineSeeds").intValue = 2;
+            effectsSo.FindProperty("_motionLineMaxLength").floatValue = maxLength;
+            effectsSo.ApplyModifiedPropertiesWithoutUndo();
+
+            var configSo = new SerializedObject(config);
+            configSo.FindProperty("_smearEffects").objectReferenceValue = effects;
+            configSo.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private void ConfigureFutureOnlyMultiple(SmearEffectsConfig effects, float futureDisplacement, float futureOpacityFactor)

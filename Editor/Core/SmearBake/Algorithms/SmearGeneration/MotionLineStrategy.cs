@@ -26,16 +26,13 @@ namespace SmearFramework.SmearGeneration
             var config = ctx.Config;
 
             var speeds = ComputeVertexSpeeds(motion, frame);
-            bool anyFast = false;
+            float maxSpeed = 0f;
             for (int v = 0; v < speeds.Length; v++)
             {
-                if (speeds[v] >= config.MotionLineSpeedThreshold)
-                {
-                    anyFast = true;
-                    break;
-                }
+                if (speeds[v] >= config.MotionLineSpeedThreshold && speeds[v] > maxSpeed)
+                    maxSpeed = speeds[v];
             }
-            if (!anyFast) return;
+            if (maxSpeed <= 0.0001f) return;
 
             _verts = new List<Vector3>();
             _tris = new List<int>();
@@ -43,7 +40,7 @@ namespace SmearFramework.SmearGeneration
 
             var seeds = PickSeedVertices(config, motion, speeds, frame);
             foreach (int seedIdx in seeds)
-                GenerateLineForVertex(seedIdx, frame, motion, traj, config);
+                GenerateLineForVertex(seedIdx, frame, motion, traj, config, speeds[seedIdx], maxSpeed);
 
             if (_verts.Count == 0) return;
 
@@ -51,17 +48,6 @@ namespace SmearFramework.SmearGeneration
             MergeIntoOutput(output, frame, lineMesh);
         }
 
-        // Find the fastest bone this frame to decide if any motion lines are needed
-        private float FindMaxBoneSpeed(MotionData motion, int frame)
-        {
-            float max = 0f;
-            for (int b = 0; b < motion.BoneCount; b++)
-            {
-                float s = motion.Bones[frame][b].linearVelocity.magnitude;
-                if (s > max) max = s;
-            }
-            return max;
-        }
 
         // Deterministically select random vertices to spawn motion lines from
         private List<int> PickSeedVertices(PipelineConfig config, MotionData motion, float[] speeds, int frame)
@@ -96,13 +82,11 @@ namespace SmearFramework.SmearGeneration
         // Build a quad strip trailing behind this vertex based on its speed
         private void GenerateLineForVertex(
             int seedIdx, int frame,
-            MotionData motion, TrajectoryData traj, PipelineConfig config)
+            MotionData motion, TrajectoryData traj, PipelineConfig config,
+            float speed, float maxSpeed)
         {
-            float delta = motion.Vertices[frame][seedIdx].motionOffset;
-            if (delta <= 0.01f) return;
-
-            float normSpeed = Mathf.Clamp01(delta);
-            float lineLen = config.MotionLineMaxLength * normSpeed;
+            float delta = maxSpeed > 0.0001f ? Mathf.Clamp01(speed / maxSpeed) : 0f;
+            float lineLen = config.MotionLineMaxLength * delta;
             if (lineLen < 0.01f) return;
 
             int segments = Mathf.Max(2, Mathf.CeilToInt(lineLen * 4));
