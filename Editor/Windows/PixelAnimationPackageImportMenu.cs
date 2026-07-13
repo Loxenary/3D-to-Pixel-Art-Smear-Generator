@@ -6,7 +6,7 @@ namespace SmearFramework.Editor
 {
     public static class PixelAnimationPackageImportMenu
     {
-        [MenuItem("Smear Generator/Import Pixel Animation Package")]
+        [MenuItem("Smear Generator/Utilities/Import Exported Pixel Art Animation")]
         static void ImportPixelAnimationPackage()
         {
             string folder = EditorUtility.OpenFolderPanel(

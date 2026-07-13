@@ -43,13 +43,13 @@ See [Dependencies](Documentation~/dependencies.md) for details.
 In Unity, open **Window > Package Management > Package Manager**, select the plus button, and choose **Add package from git URL**. Enter:
 
 ```text
-https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator.git#v0.2.0
+https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator.git#v0.2.1
 ```
 
 The same dependency can be added to the target project's `Packages/manifest.json`:
 
 ```json
-"com.davis.smear-generator": "https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator.git#v0.2.0"
+"com.davis.smear-generator": "https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator.git#v0.2.1"
 ```
 
 ### From a local clone
@@ -69,7 +69,7 @@ The **Smear Generator** menu contains one main workflow window and three support
 | **Open Smear Generator** | Preview and bake 3D animation into high-resolution or pixel-art frame output. | Use this for the normal animation pipeline. |
 | **FBX Avatar Setup** | Prepare a character FBX and animation FBX for humanoid retargeting. | Use this when the clip comes from another humanoid model or preview reports an avatar mismatch. |
 | **FBX Texture Fixer** | Extract embedded PNG textures from an FBX into the `.fbm` folder Unity expects. | Use this when an imported character is white or its material textures are missing. |
-| **Import Pixel Animation Package** | Rebuild Unity sprite, clip, controller, and prefab assets from a portable folder exported by this generator. | Use this only when moving generated pixel animation to another Unity project or device. |
+| **Utilities > Import Exported Pixel Art Animation** | Rebuild Unity sprite, clip, controller, and prefab assets from pixel-art output exported by this generator. | Use this only when moving generated pixel-art animation to another Unity project or device. |
 
 ## 1. Smear Generator window
 
@@ -158,9 +158,9 @@ Workflow:
 
 This tool repairs FBX texture extraction. It does not pixelize a model or import generated sprite animation.
 
-## 4. Import Pixel Animation Package
+## 4. Import Exported Pixel Art Animation
 
-**Import Pixel Animation Package does not import an FBX or a normal Unity animation clip.** It installs pixel animation previously exported by Smear Generator into another Unity project.
+**Import Exported Pixel Art Animation only accepts pixel-art animation output from Smear Generator.** It does not import high-resolution capture output, an FBX, or a normal Unity animation clip.
 
 ### Why the importer exists
 
@@ -192,7 +192,7 @@ walk/
 ### Destination project
 
 1. Install this generator package.
-2. Choose **Smear Generator > Import Pixel Animation Package**.
+2. Choose **Smear Generator > Utilities > Import Exported Pixel Art Animation**.
 3. Select the exported folder containing `package.json` and `animation.json`.
 4. Unity rebuilds the sprite sheet, clip, controller, and prefab.
 5. Use the rebuilt prefab from:
@@ -240,7 +240,7 @@ Open **FBX Avatar Setup** and prepare the character/clip pair as humanoid assets
 
 ### Imported prefab has missing sprites
 
-Delete the broken imported folder and run **Import Pixel Animation Package** again using the exported folder. Do not install the copied `.prefab` by itself.
+Delete the broken imported folder and run **Utilities > Import Exported Pixel Art Animation** again using the exported folder. Do not install the copied `.prefab` by itself.
 
 ### Pixel Art mode has no input
 

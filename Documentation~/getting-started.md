@@ -28,13 +28,13 @@ Replace the example with the absolute path to the standalone `3D-to-Pixel-Art-Sm
 After a release is tagged, select **Add package from git URL** in Package Manager and enter:
 
 ```text
-https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator.git#v0.2.0
+https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator.git#v0.2.1
 ```
 
 The same dependency can be written directly in the target project's `Packages/manifest.json`:
 
 ```json
-"com.davis.smear-generator": "https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator.git#v0.2.0"
+"com.davis.smear-generator": "https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator.git#v0.2.1"
 ```
 
 To update, replace the old tag with the new release tag. Commit the resulting `manifest.json` and `packages-lock.json` changes together.
@@ -70,7 +70,7 @@ Treat the exported folder as portable animation data. Install it through the Sme
 ## Import on another device or project
 
 1. Install `com.davis.smear-generator` in the destination Unity project.
-2. Choose **Smear Generator > Import Pixel Animation Package**.
+2. Choose **Smear Generator > Utilities > Import Exported Pixel Art Animation**.
 3. Select the exported pixel animation folder.
 4. Wait for Unity to import and rebuild the assets.
 5. Use the rebuilt prefab from `Assets/SmearGenerator.Generated/ImportedPackages/<name>/`.
@@ -81,5 +81,5 @@ The imported folder contains a local sprite sheet, animation clip, animator cont
 
 ### The imported prefab has missing sprites
 
-Import the exported folder again through **Smear Generator > Import Pixel Animation Package**. Do not drag a copied `.prefab` from an external folder into `Assets/`; its references can point to GUIDs from the source project.
+Import the exported folder again through **Smear Generator > Utilities > Import Exported Pixel Art Animation**. Do not drag a copied `.prefab` from an external folder into `Assets/`; its references can point to GUIDs from the source project.
 
