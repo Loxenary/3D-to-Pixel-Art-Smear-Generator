@@ -43,13 +43,13 @@ See [Dependencies](Documentation~/dependencies.md) for details.
 In Unity, open **Window > Package Management > Package Manager**, select the plus button, and choose **Add package from git URL**. Enter:
 
 ```text
-https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator.git#v0.2.1
+https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator.git#v0.2.2
 ```
 
 The same dependency can be added to the target project's `Packages/manifest.json`:
 
 ```json
-"com.davis.smear-generator": "https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator.git#v0.2.1"
+"com.davis.smear-generator": "https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator.git#v0.2.2"
 ```
 
 ### From a local clone
