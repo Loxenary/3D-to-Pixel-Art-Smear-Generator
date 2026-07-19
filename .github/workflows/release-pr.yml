@@ -24,6 +24,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ github.ref_name }}"
+          PREV_TAG=$(git tag --sort=-version:refname | grep -v "^${VERSION}$" | head -1)
+          if [ -n "$PREV_TAG" ]; then
+            CHANGELOG=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s" --no-merges)
+          else
+            CHANGELOG=$(git log HEAD --pretty=format:"- %s" --no-merges | head -20)
+          fi
           EXISTING=$(gh pr list --base release --head main --state open --json number -q '.[0].number')
           if [ -n "$EXISTING" ]; then
             echo "PR #$EXISTING already open for main → release, skipping"
@@ -32,5 +38,5 @@ jobs:
               --base release \
               --head main \
               --title "release $VERSION" \
-              --body "Automated release PR for $VERSION. Review and merge to publish."
+              --body "${VERSION}"$'\n\n'"${CHANGELOG}"
           fi
