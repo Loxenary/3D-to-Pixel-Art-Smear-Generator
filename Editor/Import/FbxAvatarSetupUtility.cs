@@ -91,16 +91,30 @@ namespace SmearFramework.Editor
             return null;
         }
 
-        // Build a short status string for the current importer state.
+        // User-facing status for a single FBX field -- returns null when path is empty.
+        public static string DescribeForUser(string assetPath)
+        {
+            var importer = GetImporter(assetPath);
+            if (importer == null)
+                return null;
+            bool isHumanoid = importer.animationType == ModelImporterAnimationType.Human;
+            bool hasAvatar  = HasValidHumanoidAvatar(assetPath);
+            if (isHumanoid && hasAvatar)
+                return "Already humanoid with a valid avatar.";
+            if (isHumanoid)
+                return "Humanoid rig but no valid avatar yet -- Prepare Retarget Pair will reimport it.";
+            return "Generic rig -- Prepare Retarget Pair will convert it to humanoid.";
+        }
+
+        // Build a short status string for the current importer state (internal / debug use).
         public static string Describe(string assetPath)
         {
             var importer = GetImporter(assetPath);
             if (importer == null)
                 return "Drop a raw .fbx asset.";
-
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
+            var prefab   = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
             var animator = prefab != null ? prefab.GetComponentInChildren<Animator>(true) : null;
-            var avatar = animator != null ? animator.avatar : null;
+            var avatar   = animator != null ? animator.avatar : null;
             string avatarLabel = avatar == null ? "none" : $"valid={avatar.isValid}, human={avatar.isHuman}";
             return $"Rig: {importer.animationType} | Avatar Setup: {importer.avatarSetup} | Avatar: {avatarLabel}";
         }
@@ -158,16 +172,9 @@ namespace SmearFramework.Editor
         // Read back the importer + avatar state after Unity reimports the asset.
         static SetupResult ReadBackStatus(string assetPath, string prefix)
         {
-            var importer = GetImporter(assetPath);
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
-            var animator = prefab != null ? prefab.GetComponentInChildren<Animator>(true) : null;
-            var avatar = animator != null ? animator.avatar : null;
-
-            string avatarLabel = avatar == null
-                ? "no avatar"
-                : $"avatar valid={avatar.isValid}, human={avatar.isHuman}";
-            string message = $"{prefix} Rig={importer.animationType}, Setup={importer.avatarSetup}, {avatarLabel}.";
-            return SetupResult.Ok(message);
+            bool hasAvatar = HasValidHumanoidAvatar(assetPath);
+            string suffix  = hasAvatar ? "Avatar is valid and humanoid." : "Avatar not confirmed -- try re-importing manually if the clip doesn't play.";
+            return SetupResult.Ok($"{prefix} {suffix}");
         }
 
         public sealed class SetupResult

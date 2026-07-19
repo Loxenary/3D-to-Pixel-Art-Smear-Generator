@@ -8,6 +8,7 @@ namespace SmearFramework.Editor
     {
         [SerializeField] private GameObject _fbxInput;
         private string _status;
+        private bool _statusIsError;
 
         [MenuItem("Smear Generator/Utilities/Humanoid Avatar Setup")]
         static void Open() => OpenWith(null);
@@ -25,26 +26,43 @@ namespace SmearFramework.Editor
         {
             EditorGUILayout.Space(8);
             EditorGUILayout.LabelField("Humanoid Avatar Setup", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField("Reimports the FBX so Unity generates a humanoid avatar from the skeleton.", EditorStyles.wordWrappedMiniLabel);
-            EditorGUILayout.Space(8);
+            EditorGUILayout.LabelField("Sets an FBX to humanoid rig mode so Unity generates an avatar from its skeleton. Required before the Smear Generator can use humanoid clips on this character.", EditorStyles.wordWrappedMiniLabel);
+            EditorGUILayout.Space(10);
 
             EditorGUILayout.LabelField("FBX Input", EditorStyles.miniLabel);
             _fbxInput = (GameObject)EditorGUILayout.ObjectField(_fbxInput, typeof(GameObject), false);
 
-            EditorGUILayout.Space(8);
-            string fbxPath = FbxAvatarSetupUtility.ResolveFbxAssetPath(_fbxInput);
-            EditorGUILayout.HelpBox(FbxAvatarSetupUtility.Describe(fbxPath), MessageType.None);
+            string fbxPath = null;
+            if (_fbxInput != null)
+            {
+                fbxPath = FbxAvatarSetupUtility.ResolveFbxAssetPath(_fbxInput);
+                if (string.IsNullOrEmpty(fbxPath))
+                    EditorGUILayout.HelpBox($"\"{_fbxInput.name}\" is not a raw .fbx file. Select the .fbx from your Project panel, not a prefab or generated asset.", MessageType.Warning);
+                else
+                {
+                    string fieldStatus = FbxAvatarSetupUtility.DescribeForUser(fbxPath);
+                    if (!string.IsNullOrEmpty(fieldStatus))
+                        EditorGUILayout.HelpBox(fieldStatus, MessageType.None);
+                }
+            }
+            else
+            {
+                EditorGUILayout.HelpBox("Drop a raw .fbx from your Project panel.", MessageType.Info);
+            }
 
+            EditorGUILayout.Space(8);
             EditorGUI.BeginDisabledGroup(string.IsNullOrEmpty(fbxPath));
-            if (GUILayout.Button("Create Humanoid Avatar", GUILayout.Height(30)))
+            if (GUILayout.Button(new GUIContent("Create Humanoid Avatar",
+                "Reimports the FBX with humanoid rig settings and generates an avatar from its skeleton."),
+                GUILayout.Height(32)))
                 Apply(fbxPath);
             EditorGUI.EndDisabledGroup();
 
-            if (string.IsNullOrEmpty(fbxPath))
-                EditorGUILayout.HelpBox("Drop a raw .fbx asset into FBX Input.", MessageType.Info);
-
             if (!string.IsNullOrEmpty(_status))
-                EditorGUILayout.HelpBox(_status, MessageType.None);
+            {
+                EditorGUILayout.Space(6);
+                EditorGUILayout.HelpBox(_status, _statusIsError ? MessageType.Warning : MessageType.Info);
+            }
         }
 
         // Reimport the FBX as a humanoid character that creates its own avatar.
@@ -52,6 +70,7 @@ namespace SmearFramework.Editor
         {
             var result = FbxAvatarSetupUtility.MakeHumanoidFromModel(fbxPath);
             _status = result.Message;
+            _statusIsError = !result.Success;
             if (result.Success)
                 Debug.Log("[SmearGenerator] " + result.Message);
             else
