@@ -11,6 +11,18 @@ namespace SmearFramework.Editor
         private bool _showOutputDetails;
         private bool _showPostProcessDetails;
 
+        static readonly float[] PixelNoiseLevels  = { 0f, 12f, 35f, 70f };
+        static readonly string[] PixelNoiseLabels = { "No Suppression", "Low", "High", "Max" };
+
+        // Map a raw float to the nearest dropdown index.
+        static int FloatToNoiseLevel(float v)
+        {
+            if (v <= 0f)  return 0;
+            if (v < 20f)  return 1;
+            if (v < 50f)  return 2;
+            return 3;
+        }
+
         public OutputConfig CurrentOutputConfig       => _outputConfig;
         public PostProcessConfig CurrentPostProcessConfig => _postProcessConfig;
 
@@ -93,9 +105,14 @@ namespace SmearFramework.Editor
                     EditorGUILayout.PropertyField(so.FindProperty("_emIterations"),
                         new GUIContent("Edge Sharpness",
                             "How many passes the pixelizer runs to sharpen color boundaries before finalizing each frame. Higher = crisper outlines, slower bake. 5 is a safe default for most characters."));
-                    EditorGUILayout.PropertyField(so.FindProperty("_flickerSuppressOnDistance"),
-                        new GUIContent("Pixel Stability",
-                            "Keeps individual pixels from randomly switching color between frames. Set to 0 to disable. If you see single pixels blinking in your animation, start with 20. Higher values lock more pixels in place but may make the animation look overly static."));
+                    var flickerProp = so.FindProperty("_flickerSuppressOnDistance");
+                    int currentLevel = FloatToNoiseLevel(flickerProp.floatValue);
+                    int newLevel = EditorGUILayout.Popup(
+                        new GUIContent("Pixel Noise Suppression",
+                            "Prevents individual pixels from randomly switching color between frames. Low is enough for most sprites. Use High or Max if you still see blinking pixels after baking."),
+                        currentLevel, PixelNoiseLabels);
+                    if (newLevel != currentLevel)
+                        flickerProp.floatValue = PixelNoiseLevels[newLevel];
 
                     changed |= EditorGUI.EndChangeCheck();
                     so.ApplyModifiedProperties();
@@ -104,7 +121,7 @@ namespace SmearFramework.Editor
                     EditorGUI.BeginChangeCheck();
                     reusePalette = EditorGUILayout.ToggleLeft(
                         new GUIContent("Lock color set for whole animation",
-                            "When on, all frames share one color set instead of each frame picking its own. Prevents the overall color scheme from shifting as the animation plays. Pixel Stability above handles individual blinking pixels -- this handles the whole color scheme."),
+                            "When on, all frames share one color set instead of each frame picking its own. Prevents the overall color scheme from shifting as the animation plays. Pixel Noise Suppression above handles individual blinking pixels -- this handles the whole color scheme."),
                         reusePalette);
                     changed |= EditorGUI.EndChangeCheck();
                 }
