@@ -58,6 +58,7 @@ namespace SmearFramework.Stages
                     outW, outH,
                     cfg.EmIterations);
                 sharedLUT = IOKMQuantizer.BuildLUT(seedDownscaled, cfg.PostProcessPaletteSize);
+                if (sharedLUT.Length == 0) sharedLUT = null; // seed frame was fully transparent -- fall back to per-frame quantize
             }
 
             // stage 3: per-frame downscale + quantize in parallel (pure Color[] math, no Unity API)

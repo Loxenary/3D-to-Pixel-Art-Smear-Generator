@@ -24,8 +24,10 @@ namespace SmearFramework.Editor
         [SerializeField] private SmearEffectsConfig _smearConfig;
         [SerializeField] private SmearOutputConfig _smearOutputConfig;
         [SerializeField] private OutputConfig _outputConfig;
+        [SerializeField] private PostProcessConfig _postProcessConfig;
         [SerializeField] private VelocityConfig _velocityConfig;
         [SerializeField] private int _targetFps = 12;
+        [SerializeField] private bool _reusePaletteAcrossFrames = true;
         private bool _cameraAngleDirty;
 
         private bool _showSmearDetails;
@@ -35,6 +37,7 @@ namespace SmearFramework.Editor
         private UnityEditor.Editor _smearEditor;
         private UnityEditor.Editor _smearOutputEditor;
         private UnityEditor.Editor _outputEditor;
+        private UnityEditor.Editor _postProcessEditor;
         private UnityEditor.Editor _velocityEditor;
 
         private Texture2D[] _smearFrames;
@@ -67,6 +70,7 @@ namespace SmearFramework.Editor
         private int _frame;
         private bool _playing;
         private double _playStart;
+        private double _nextPlaybackRepaintAt;
 
         [SerializeField] private PreviewViewState _leftView = PreviewViewState.Default;
         [SerializeField] private PreviewViewState _rightView = PreviewViewState.Default;
@@ -106,6 +110,7 @@ namespace SmearFramework.Editor
         private const float LeftRatioMin = 0.15f;
         private const float LeftRatioMax = 0.75f;
         private const float TwoPanelMinWidth = 600f;
+        private static readonly Vector2 DefaultWindowMinSize = new Vector2(900f, 520f);
 
         private static readonly Color PipelineTint = new Color(0.28f, 0.45f, 0.68f);
         private static readonly Color InputTint = new Color(0.18f, 0.58f, 0.55f);
@@ -122,6 +127,12 @@ namespace SmearFramework.Editor
         private const float SecondaryButtonHeight = 28f;
         private const float CompactButtonHeight = 24f;
 
+        // Keeps portable exports discoverable inside the current Unity project by default.
+        internal static string DefaultExternalExportFolder()
+        {
+            return Path.Combine(Application.dataPath, "GeneratedOutput");
+        }
+
         #endregion
 
         #region GUI
@@ -130,17 +141,37 @@ namespace SmearFramework.Editor
         static void Open()
         {
             var w = GetWindow<SmearFrameworkWindow>("Smear Generator");
-            w.minSize = new Vector2(300, 300);
+            w.minSize = DefaultWindowMinSize;
         }
 
         void OnEnable()
         {
+            minSize = DefaultWindowMinSize;
             if (_state == null)      _state      = new SmearFrameworkEditorState();
             if (_controller == null) _controller = new SmearFrameworkEditorController(null, _currentMode);
             EnsureSections();
             LoadDefaultConfigs();
             EnsureExternalExportDefaults();
             RefreshValidation();
+            EditorApplication.update -= TickPlayback;
+            EditorApplication.update += TickPlayback;
+        }
+
+        // Stops editor callbacks owned by this window.
+        void OnDisable()
+        {
+            EditorApplication.update -= TickPlayback;
+            EditorApplication.update -= FlushPendingCapturePreview;
+        }
+
+        // Repaints playback at the selected capture rate instead of every editor update.
+        void TickPlayback()
+        {
+            if (!_playing || !HasPreviewFrames()) return;
+            double now = EditorApplication.timeSinceStartup;
+            if (now < _nextPlaybackRepaintAt) return;
+            _nextPlaybackRepaintAt = now + 1d / Mathf.Max(1, _targetFps);
+            Repaint();
         }
 
         void EnsureSections()
@@ -182,7 +213,6 @@ namespace SmearFramework.Editor
                 HandleSplitterDrag();
             }
 
-            if (_playing && HasPreviewFrames()) Repaint();
             if (_pendingRebake || _pendingAutoPreview) Repaint();
         }
 
@@ -195,7 +225,9 @@ namespace SmearFramework.Editor
             EditorGUILayout.BeginVertical(GUILayout.Width(panelW));
             _paramScroll = EditorGUILayout.BeginScrollView(_paramScroll);
 
-            BeginSectionCard("Pipeline", PipelineTint);
+            BeginSectionCard("Workflow Mode", PipelineTint);
+            DrawDescription("Choose which stages this bake runs. This does not change the output file type.");
+            DrawGroupGap();
             DrawWorkflowPresets();
             EndSectionCard();
 
@@ -222,7 +254,10 @@ namespace SmearFramework.Editor
                 HandleInputChanged();
             DrawGroupGap();
             DrawFieldLabel(new GUIContent("Target FPS", "Frames per second captured from the animation clip. Applies to both smear bake and pixel art output."));
+            int previousTargetFps = _targetFps;
             _targetFps = Mathf.Max(1, EditorGUILayout.IntField(_targetFps));
+            if (previousTargetFps != _targetFps)
+                MarkResultsStale();
 
             string inputProblem = BuildInputProblem();
             if (!string.IsNullOrEmpty(inputProblem))
@@ -236,19 +271,10 @@ namespace SmearFramework.Editor
 
             EndSectionCard();
 
-            EditorGUI.BeginChangeCheck();
             if (HasSmearStage())
                 DrawSmearPhaseConfig();
             if (HasPixelizationStage())
                 DrawPixelizationPhaseConfig();
-            if (EditorGUI.EndChangeCheck())
-            {
-                if (_autoRebake && IsCacheUsable() && _cachedPrefab == _characterPrefab && _cachedClip == _clip)
-                {
-                    _lastChangeTime = EditorApplication.timeSinceStartup;
-                    _pendingRebake = true;
-                }
-            }
 
             BeginSectionCard("Action", ActionTint);
             if (!string.IsNullOrEmpty(_state.ValidationStatus))
@@ -284,7 +310,7 @@ namespace SmearFramework.Editor
             EditorGUI.EndDisabledGroup();
 
             if (!canRun)
-                EditorGUILayout.HelpBox("Drop a character + animation clip to bake.", MessageType.Info);
+                EditorGUILayout.HelpBox(BuildRunRequirementMessage(), MessageType.Info);
 
             if (_pendingRebake)
             {
@@ -326,10 +352,10 @@ namespace SmearFramework.Editor
         // Seed export defaults once, then preserve the user's edits until a new result arrives.
         void EnsureExternalExportDefaults()
         {
-            // load persisted folder from EditorPrefs first, fall back to Desktop
+            // Load the persisted folder first, then fall back inside the current project.
             if (string.IsNullOrWhiteSpace(_externalExportFolder))
                 _externalExportFolder = EditorPrefs.GetString(ExportFolderPrefKey,
-                    System.Environment.GetFolderPath(System.Environment.SpecialFolder.Desktop));
+                    DefaultExternalExportFolder());
             if (string.IsNullOrWhiteSpace(_externalExportFolderName))
                 _externalExportFolderName = BuildExternalExportFolderName(_state.LastPixelResult);
             if (_resultsSection != null)
@@ -366,7 +392,7 @@ namespace SmearFramework.Editor
             _externalExportFolder = EditorPrefs.GetString(
                 ExportFolderPrefKey,
                 string.IsNullOrWhiteSpace(_externalExportFolder)
-                    ? System.Environment.GetFolderPath(System.Environment.SpecialFolder.Desktop)
+                    ? DefaultExternalExportFolder()
                     : _externalExportFolder);
             _externalExportFolderName = BuildExternalExportFolderName(_state.LastPixelResult);
             if (_resultsSection != null)
@@ -379,6 +405,13 @@ namespace SmearFramework.Editor
             bool hasPixelResult = _state.LastPixelResult != null && !string.IsNullOrEmpty(_state.LastPixelResult.PackageFolder);
             bool hasSmear3DResult = _state.LastSmear3DResult != null && !string.IsNullOrEmpty(_state.LastSmear3DResult.PrefabPath);
             return hasPixelResult || hasSmear3DResult;
+        }
+
+        // Keeps completed output visible while making its outdated settings explicit.
+        void MarkResultsStale()
+        {
+            if (HasResultsPanel())
+                _state.ResultsStale = true;
         }
 
 
@@ -424,10 +457,12 @@ namespace SmearFramework.Editor
         }
 
 
-        // Returns true only when assetPath is non-empty and starts with Assets.
-        bool IsValidProjectAssetFolder(string assetPath)
+        // Accepts only the Assets root or one of its descendants.
+        static bool IsValidProjectAssetFolder(string assetPath)
         {
-            return !string.IsNullOrEmpty(assetPath) && assetPath.StartsWith("Assets");
+            if (string.IsNullOrWhiteSpace(assetPath)) return false;
+            string normalized = assetPath.Replace('\\', '/').TrimEnd('/');
+            return normalized == "Assets" || normalized.StartsWith("Assets/");
         }
 
 
@@ -482,7 +517,7 @@ namespace SmearFramework.Editor
         {
             if (string.IsNullOrEmpty(assetPath)) return Application.dataPath;
             string trimmed = assetPath.Replace('\\', '/').TrimEnd('/');
-            if (trimmed.StartsWith("Assets"))
+            if (IsValidProjectAssetFolder(trimmed))
                 return Path.GetFullPath(Path.Combine(Application.dataPath, "..", trimmed));
             return trimmed;
         }
@@ -492,7 +527,7 @@ namespace SmearFramework.Editor
         {
             string dataPath = Path.GetFullPath(Application.dataPath).Replace('\\', '/');
             string normal   = Path.GetFullPath(systemPath).Replace('\\', '/');
-            if (normal.StartsWith(dataPath))
+            if (normal == dataPath || normal.StartsWith(dataPath + "/"))
                 return "Assets" + normal.Substring(dataPath.Length);
             return normal;
         }
@@ -500,6 +535,7 @@ namespace SmearFramework.Editor
         // Schedule validation / quick rebake after config changes.
         void HandleConfigChanged()
         {
+            MarkResultsStale();
             RefreshValidation();
             if (_autoRebake && IsCacheUsable() && _cachedPrefab == _characterPrefab && _cachedClip == _clip)
             {
@@ -537,7 +573,11 @@ namespace SmearFramework.Editor
         void DrawPixelizationPhaseConfig()
         {
             BeginSectionCard("Pixelization", PixelTint);
-            _pixelizationSection.Draw(_outputConfig, ref _outputEditor, _layoutSection, ref _showPivotLine, HandleConfigChanged);
+            _pixelizationSection.Draw(
+                _outputConfig, ref _outputEditor,
+                _postProcessConfig, ref _postProcessEditor,
+                ref _reusePaletteAcrossFrames,
+                _layoutSection, ref _showPivotLine, HandleConfigChanged);
             EndSectionCard();
         }
 
@@ -639,7 +679,7 @@ namespace SmearFramework.Editor
 
             if (_playing && _frameCount > 0)
             {
-                float fps = _velocityConfig != null ? _velocityConfig.TargetFps : 12;
+                float fps = Mathf.Max(1, _targetFps);
                 _frame = (int)((EditorApplication.timeSinceStartup - _playStart) * fps) % _frameCount;
             }
 
@@ -671,6 +711,7 @@ namespace SmearFramework.Editor
                 () => _frameCount,
                 _ => (_cleanFrames  != null && _frame < _cleanFrames.Length  ? _cleanFrames[_frame]  : null),
                 _ => (_smearFrames  != null && _frame < _smearFrames.Length  ? _smearFrames[_frame]  : null));
+            DrawPixelSmearIndicator(_previewSection.RightPaneRect);
 
             // Overlay rect is now based on LeftPaneRect set by this frame's Draw() call.
             Rect overlayRect = GetViewportOverlayRect(_previewSection.LeftPaneRect);
@@ -1042,6 +1083,7 @@ namespace SmearFramework.Editor
             _status = BuildSpriteSheetStatus(pipeline.Context, _bakeTimeMs, "");
             if (pipeline.Context.Has("sprite_sheet"))
                 _state.LastPixelResult = pipeline.Context.Get<SpriteSheetResult>("sprite_sheet");
+            _state.ResultsStale = false;
             SyncExternalExportDefaults();
 
             DestroyImmediate(config);
@@ -1151,6 +1193,7 @@ namespace SmearFramework.Editor
             _state.LastPixelResult = ctx.Has("sprite_sheet")
                 ? ctx.Get<SpriteSheetResult>("sprite_sheet")
                 : null;
+            _state.ResultsStale = false;
             if (_state.LastPixelResult != null)
                 SyncExternalExportDefaults();
             _lastCaptureFrame = ctx.Has("capture_frame")
@@ -1220,6 +1263,9 @@ namespace SmearFramework.Editor
                 so.FindProperty("_smearOutput").objectReferenceValue = _smearOutputConfig;
             if (includePixelOutput && _outputConfig != null)
                 so.FindProperty("_output").objectReferenceValue = _outputConfig;
+            if (includePixelOutput && _postProcessConfig != null)
+                so.FindProperty("_postProcess").objectReferenceValue = _postProcessConfig;
+            so.FindProperty("_reusePaletteAcrossFrames").boolValue = _reusePaletteAcrossFrames;
             if (_velocityConfig != null)
             {
                 var vso = new SerializedObject(_velocityConfig);
@@ -1342,6 +1388,20 @@ namespace SmearFramework.Editor
             EditorGUILayout.EndHorizontal();
         }
 
+        // Shows per-frame smear activity directly over the pixel result pane.
+        void DrawPixelSmearIndicator(Rect pixelPane)
+        {
+            if (!HasPixelizationStage() || _perFrameIntensity == null || _frame >= _perFrameIntensity.Length)
+                return;
+
+            float intensity = Mathf.Clamp01(_perFrameIntensity[_frame]);
+            string label = intensity > 0.01f
+                ? $"Smear active  {intensity:F3}"
+                : "No smear on this frame";
+            var rect = new Rect(pixelPane.x + 8f, pixelPane.y + 8f, Mathf.Min(180f, pixelPane.width - 16f), 18f);
+            EditorGUI.ProgressBar(rect, intensity, label);
+        }
+
 
         // Keep the pane label honest when pixelization is comparing against the raw input.
         string ResolveLeftPaneLabel(bool allowLeftSourceToggle, bool has3DLeft, bool hasPixelLeft, bool smearMode, bool pixelMode)
@@ -1360,7 +1420,7 @@ namespace SmearFramework.Editor
             float desiredWidth = Mathf.Max(presetWidth + 62f, 222f);
             float width = Mathf.Min(desiredWidth, Mathf.Max(180f, viewport.width - 16f));
             float extraHeight = _cameraAngleDirty && CanRunCurrentMode() ? 34f : 0f;
-            return new Rect(viewport.x + 8f, viewport.yMax - 80f - extraHeight, width, 72f + extraHeight);
+            return new Rect(viewport.x + 8f, viewport.yMax - 98f - extraHeight, width, 90f + extraHeight);
         }
 
         void DrawViewportOverlay(Rect viewport, ref PreviewViewState view)
@@ -1390,23 +1450,26 @@ namespace SmearFramework.Editor
                 yOff = 34f;
             }
 
+            Rect headingRect = new Rect(boxRect.x + padding, boxRect.y + padding + yOff, boxRect.width - padding * 2f, 16f);
+            GUI.Label(headingRect, "Camera Perspective", EditorStyles.boldLabel);
+
             float presetWidth = boxRect.width - padding * 2f - rowGap - resetButtonWidth;
-            Rect presetRect = new Rect(boxRect.x + padding, boxRect.y + padding + yOff, presetWidth, 18f);
-            if (EditorGUI.DropdownButton(presetRect, new GUIContent($"{CurrentCapturePresetName()} ▾"), FocusType.Passive, EditorStyles.miniButton))
+            Rect presetRect = new Rect(boxRect.x + padding, boxRect.y + 24f + yOff, presetWidth, 20f);
+            if (EditorGUI.DropdownButton(presetRect, new GUIContent($"{CurrentCapturePresetName()} ▾", "Choose the camera angle used by the next bake."), FocusType.Passive, EditorStyles.miniButton))
                 DrawCapturePresetMenu(presetRect);
 
             var resetContent = new GUIContent(EditorGUIUtility.IconContent("TreeEditor.Refresh"));
             resetContent.tooltip = "Reset view and capture angle";
             if (resetContent.image == null)
                 resetContent.text = "Reset";
-            Rect resetRect = new Rect(presetRect.xMax + rowGap, boxRect.y + padding + yOff, resetButtonWidth, 18f);
+            Rect resetRect = new Rect(presetRect.xMax + rowGap, boxRect.y + 24f + yOff, resetButtonWidth, 20f);
             if (GUI.Button(resetRect, resetContent, EditorStyles.miniButton))
             {
                 view.Reset();
                 ResetCaptureEuler();
             }
 
-            float angleRowY = boxRect.y + 28f + yOff;
+            float angleRowY = boxRect.y + 48f + yOff;
             Rect angleFieldRect = new Rect(boxRect.x + padding, angleRowY, boxRect.width - padding * 2f, 18f);
             EditorGUI.BeginChangeCheck();
             Vector3 nextEuler = EditorGUI.Vector3Field(angleFieldRect, GUIContent.none, _captureCameraEuler);
@@ -1414,14 +1477,14 @@ namespace SmearFramework.Editor
                 SetCaptureEuler(nextEuler);
 
             float labelWidth = boxRect.width - padding * 2f - rowGap * 2f - rollButtonWidth * 2f;
-            Rect labelRect = new Rect(boxRect.x + padding, boxRect.y + 50f + yOff, labelWidth, 16f);
+            Rect labelRect = new Rect(boxRect.x + padding, boxRect.y + 70f + yOff, labelWidth, 16f);
             GUI.Label(labelRect, $"zoom {view.Zoom:F2} · roll {view.RollDeg:F0}°", EditorStyles.centeredGreyMiniLabel);
 
-            Rect rollMinusRect = new Rect(labelRect.xMax + rowGap, boxRect.y + 48f + yOff, rollButtonWidth, 18f);
+            Rect rollMinusRect = new Rect(labelRect.xMax + rowGap, boxRect.y + 68f + yOff, rollButtonWidth, 18f);
             if (GUI.Button(rollMinusRect, "Roll -", EditorStyles.miniButton))
             { view.RollDeg -= 15f; _cameraAngleDirty = true; }
 
-            Rect rollPlusRect = new Rect(rollMinusRect.xMax + rowGap, boxRect.y + 48f + yOff, rollButtonWidth, 18f);
+            Rect rollPlusRect = new Rect(rollMinusRect.xMax + rowGap, boxRect.y + 68f + yOff, rollButtonWidth, 18f);
             if (GUI.Button(rollPlusRect, "Roll +", EditorStyles.miniButton))
             { view.RollDeg += 15f; _cameraAngleDirty = true; }
         }
@@ -1450,14 +1513,14 @@ namespace SmearFramework.Editor
         {
             _captureCameraEuler = absolute;
             _cameraAngleDirty = true;
+            MarkResultsStale();
             PreviewCaptureCameraChange();
         }
 
         // Reset the real capture camera rotation for the next bake.
         void ResetCaptureEuler()
         {
-            _captureCameraEuler = Vector3.zero;
-            PreviewCaptureCameraChange();
+            SetCaptureEuler(Vector3.zero);
         }
         // Re-capture at the new camera angle but keep existing smear bake results.
         // Debounced so dragging the angle fields does not spin a full preview recapture every tick.
@@ -1551,13 +1614,13 @@ namespace SmearFramework.Editor
             EditorGUILayout.BeginHorizontal();
             var oldBg = GUI.backgroundColor;
             GUI.backgroundColor = PipelineTint;
-            if (GUILayout.Button(new GUIContent("Full", "Smear + pixel art."), EditorStyles.miniButton, GUILayout.ExpandWidth(true), GUILayout.Height(SecondaryButtonHeight)))
+            if (GUILayout.Button(new GUIContent("Full Workflow", "Runs smear bake followed by pixel-art conversion."), EditorStyles.miniButton, GUILayout.ExpandWidth(true), GUILayout.Height(SecondaryButtonHeight)))
                 ApplyPreset(PipelineMode.Full);
             GUI.backgroundColor = SmearTint;
-            if (GUILayout.Button(new GUIContent("Smear Bake", "Bake smear frames without pixelization."), EditorStyles.miniButton, GUILayout.ExpandWidth(true), GUILayout.Height(SecondaryButtonHeight)))
+            if (GUILayout.Button(new GUIContent("Smear Only", "Bakes motion-derived smear frames without pixelization."), EditorStyles.miniButton, GUILayout.ExpandWidth(true), GUILayout.Height(SecondaryButtonHeight)))
                 ApplyPreset(PipelineMode.SmearBakeOnly);
             GUI.backgroundColor = PixelTint;
-            if (GUILayout.Button(new GUIContent("Pixel Art", "Pixelize loaded frames."), EditorStyles.miniButton, GUILayout.ExpandWidth(true), GUILayout.Height(SecondaryButtonHeight)))
+            if (GUILayout.Button(new GUIContent("Pixel Art Only", "Pixelizes loaded high-resolution frames without running the smear bake."), EditorStyles.miniButton, GUILayout.ExpandWidth(true), GUILayout.Height(SecondaryButtonHeight)))
                 ApplyPreset(PipelineMode.PixelArtOnly);
             GUI.backgroundColor = oldBg;
             EditorGUILayout.EndHorizontal();
@@ -1568,6 +1631,7 @@ namespace SmearFramework.Editor
         {
             _currentMode = mode;
             _controller.ApplyPreset(mode);
+            MarkResultsStale();
             _smearFrames = null;
             _cleanFrames = null;
             _clean3DFrames = null;
@@ -1716,12 +1780,20 @@ namespace SmearFramework.Editor
         }
 
 
-        // is the run button enabled? need either (a) char+clip, or (b) a loaded PNG to feed downstream stages
+        // Smear workflows always require live character and clip input; pixel-only runs may use a loaded sheet.
         bool CanRunCurrentMode()
         {
-            bool hasCharClip = HasValidLiveInput();
-            bool hasPreload = _state.AvailableHighRes != null;
-            return hasCharClip || hasPreload;
+            if (HasSmearStage())
+                return HasValidLiveInput();
+            return HasValidLiveInput() || _state.HasHighResSource;
+        }
+
+        // Explains the exact missing input for the selected workflow.
+        string BuildRunRequirementMessage()
+        {
+            return HasSmearStage()
+                ? "Drop a character + animation clip to run this smear workflow."
+                : "Drop a character + animation clip, or load a high-res sheet.";
         }
 
         // any stage consumes frames_highres before any earlier stage produces it?
