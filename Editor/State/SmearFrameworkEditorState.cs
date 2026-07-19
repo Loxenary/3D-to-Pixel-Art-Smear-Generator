@@ -11,6 +11,7 @@ namespace SmearFramework.Editor
         public SpriteSheetResult LastPixelResult;
         public SmearScene3DExporter.Result LastSmear3DResult;
         public bool LastSmear3DResultIsTemporary;
+        public bool ResultsStale;
         public string ValidationStatus;
 
         // True when Workflow 2 can read high-res frames without capturing from the character again.
