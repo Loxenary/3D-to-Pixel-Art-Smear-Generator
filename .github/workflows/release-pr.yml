@@ -1,11 +1,9 @@
 name: release-pr
 
-# Opens a PR from main → release whenever a version tag is pushed.
-# Merge the PR manually to publish the release.
+# Run this manually from Actions when you're ready to cut a release.
+# It opens a PR from main → release with a changelog since the last tag.
 on:
-  push:
-    tags:
-      - 'v[0-9]*'
+  workflow_dispatch:
 
 jobs:
   open-pr:
@@ -23,7 +21,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION="${{ github.ref_name }}"
+          VERSION="v$(jq -r .version package.json)"
           PREV_TAG=$(git tag --sort=-version:refname | grep -v "^${VERSION}$" | head -1)
           if [ -n "$PREV_TAG" ]; then
             CHANGELOG=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s" --no-merges)
