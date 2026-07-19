@@ -94,8 +94,8 @@ namespace SmearFramework.Editor
                         new GUIContent("Edge Sharpness",
                             "How many passes the pixelizer runs to sharpen color boundaries before finalizing each frame. Higher = crisper outlines, slower bake. 5 is a safe default for most characters."));
                     EditorGUILayout.PropertyField(so.FindProperty("_flickerSuppressOnDistance"),
-                        new GUIContent("Single-pixel Noise",
-                            "Stops individual pixels from blinking between two nearly identical shades on consecutive frames. Useful when you see a single pixel that keeps switching color while the rest of the image is stable. Raise to suppress more. Set to 0 to disable."));
+                        new GUIContent("Pixel Stability",
+                            "Keeps individual pixels from randomly switching color between frames. Set to 0 to disable. If you see single pixels blinking in your animation, start with 20. Higher values lock more pixels in place but may make the animation look overly static."));
 
                     changed |= EditorGUI.EndChangeCheck();
                     so.ApplyModifiedProperties();
@@ -104,7 +104,7 @@ namespace SmearFramework.Editor
                     EditorGUI.BeginChangeCheck();
                     reusePalette = EditorGUILayout.ToggleLeft(
                         new GUIContent("Lock color set for whole animation",
-                            "When on, all frames share one color set instead of each frame picking its own. Prevents the overall color scheme from shifting as the animation plays. The Single-pixel Noise option above handles individual blinking pixels -- this handles the whole color scheme."),
+                            "When on, all frames share one color set instead of each frame picking its own. Prevents the overall color scheme from shifting as the animation plays. Pixel Stability above handles individual blinking pixels -- this handles the whole color scheme."),
                         reusePalette);
                     changed |= EditorGUI.EndChangeCheck();
                 }
