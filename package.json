@@ -1,7 +1,7 @@
 {
   "name": "com.davis.smear-generator",
   "displayName": "3D-to-Pixel-Art Smear Generator",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "unity": "6000.3",
   "description": "Editor tools for converting 3D character animation into pixel-art sprite animation with smear frames.",
   "author": { "name": "Muhammad Davis Adhipramana" },
