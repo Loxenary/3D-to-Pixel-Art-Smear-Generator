@@ -43,13 +43,15 @@ See [Dependencies](Documentation~/dependencies.md) for details.
 In Unity, open **Window > Package Management > Package Manager**, select the plus button, and choose **Add package from git URL**. Enter:
 
 ```text
-https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator.git#v0.2.2
+https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator.git#release
 ```
+
+This tracks the `release` branch. The Package Manager **Update** button will appear when a new version is published. To pin to a specific version, use a tag like `#v0.2.3` instead.
 
 The same dependency can be added to the target project's `Packages/manifest.json`:
 
 ```json
-"com.davis.smear-generator": "https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator.git#v0.2.2"
+"com.davis.smear-generator": "https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator.git#release"
 ```
 
 ### From a local clone

@@ -1,0 +1,36 @@
+name: release-pr
+
+# Opens a PR from main → release whenever a version tag is pushed.
+# Merge the PR manually to publish the release.
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+
+jobs:
+  open-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Open release PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ github.ref_name }}"
+          EXISTING=$(gh pr list --base release --head main --state open --json number -q '.[0].number')
+          if [ -n "$EXISTING" ]; then
+            echo "PR #$EXISTING already open for main → release, skipping"
+          else
+            gh pr create \
+              --base release \
+              --head main \
+              --title "release $VERSION" \
+              --body "Automated release PR for $VERSION. Review and merge to publish."
+          fi
