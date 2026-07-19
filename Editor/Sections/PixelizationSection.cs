@@ -106,8 +106,8 @@ namespace SmearFramework.Editor
                     layout.DrawGroupGap();
                     EditorGUI.BeginChangeCheck();
                     reusePalette = EditorGUILayout.ToggleLeft(
-                        new GUIContent("Reuse palette across frames",
-                            "When on, colors are chosen once from a sample frame and applied to every frame. Keeps the palette consistent and bakes faster. Turn off only if colors look wrong on specific frames."),
+                        new GUIContent("Use consistent colors for every frame",
+                            "When on, colors are picked once and applied to the whole animation -- the sprite won't flicker between different shades as it plays. Turn off only if certain frames look washed out because their colors are too different from the rest."),
                         reusePalette);
                     changed |= EditorGUI.EndChangeCheck();
                 }
