@@ -28,6 +28,7 @@ namespace SmearFramework.Editor
         [SerializeField] private VelocityConfig _velocityConfig;
         [SerializeField] private int _targetFps = 12;
         [SerializeField] private bool _reusePaletteAcrossFrames = true;
+        [SerializeField] private bool _needsFullBake;
         private bool _cameraAngleDirty;
 
         private bool _showSmearDetails;
@@ -127,10 +128,10 @@ namespace SmearFramework.Editor
         private const float SecondaryButtonHeight = 28f;
         private const float CompactButtonHeight = 24f;
 
-        // Keeps portable exports discoverable inside the current Unity project by default.
+        // Default export destination -- inside the project's generated output folder so it shows up in Assets.
         internal static string DefaultExternalExportFolder()
         {
-            return Path.Combine(Application.dataPath, "GeneratedOutput");
+            return Path.GetFullPath(Path.Combine(Application.dataPath, "..", SmearFrameworkPaths.Output));
         }
 
         #endregion
@@ -142,6 +143,7 @@ namespace SmearFramework.Editor
         {
             var w = GetWindow<SmearFrameworkWindow>("Smear Generator");
             w.minSize = DefaultWindowMinSize;
+            w.maximized = true;
         }
 
         void OnEnable()
@@ -257,7 +259,10 @@ namespace SmearFramework.Editor
             int previousTargetFps = _targetFps;
             _targetFps = Mathf.Max(1, EditorGUILayout.IntField(_targetFps));
             if (previousTargetFps != _targetFps)
-                MarkResultsStale();
+                HandleFullBakeRequired();
+
+            if (HasResultsPanel() && _state.ResultsStale)
+                EditorGUILayout.HelpBox("Rebake needed -- clip or FPS changed.", MessageType.Warning);
 
             string inputProblem = BuildInputProblem();
             if (!string.IsNullOrEmpty(inputProblem))
@@ -291,14 +296,16 @@ namespace SmearFramework.Editor
 
             if (hasCache)
             {
-                EditorGUILayout.BeginHorizontal();
-                if (GUILayout.Button(new GUIContent("Re-bake", "Skips velocity extraction. Use after parameter tweaks."), GUILayout.ExpandWidth(true), GUILayout.Height(SecondaryButtonHeight)))
-                    DoQuickRebake();
-                if (GUILayout.Button(new GUIContent("Full Bake", "Runs the full workflow from the current inputs."), GUILayout.ExpandWidth(true), GUILayout.Height(SecondaryButtonHeight)))
-                    DoBake();
-                EditorGUILayout.EndHorizontal();
-                _autoRebake = EditorGUILayout.ToggleLeft(
-                    new GUIContent("Auto re-bake on change", "Re-runs after parameter edits when a valid cache already exists."), _autoRebake);
+                string btnLabel = NeedsCharacterClip() ? "Rebake" : "Run pipeline";
+                if (GUILayout.Button(new GUIContent(btnLabel,
+                    _needsFullBake
+                        ? "Runs the full pipeline from scratch -- required because FPS or motion params changed."
+                        : "Skips velocity extraction and reuses the cached motion data."),
+                    GUILayout.ExpandWidth(true), GUILayout.Height(PrimaryButtonHeight)))
+                {
+                    if (_needsFullBake) DoBake();
+                    else DoQuickRebake();
+                }
             }
             else
             {
@@ -352,10 +359,12 @@ namespace SmearFramework.Editor
         // Seed export defaults once, then preserve the user's edits until a new result arrives.
         void EnsureExternalExportDefaults()
         {
-            // Load the persisted folder first, then fall back inside the current project.
             if (string.IsNullOrWhiteSpace(_externalExportFolder))
-                _externalExportFolder = EditorPrefs.GetString(ExportFolderPrefKey,
-                    DefaultExternalExportFolder());
+            {
+                string stored = EditorPrefs.GetString(ExportFolderPrefKey, "");
+                // ignore stale paths that no longer exist or sit outside the project
+                _externalExportFolder = IsUsableExportFolder(stored) ? stored : DefaultExternalExportFolder();
+            }
             if (string.IsNullOrWhiteSpace(_externalExportFolderName))
                 _externalExportFolderName = BuildExternalExportFolderName(_state.LastPixelResult);
             if (_resultsSection != null)
@@ -379,6 +388,11 @@ namespace SmearFramework.Editor
                 _externalExportFolderName = currentFolderName;
         }
 
+        // Returns true only when the folder exists on disk -- rejects stale paths from previous sessions.
+        static bool IsUsableExportFolder(string folder)
+        {
+            return !string.IsNullOrWhiteSpace(folder) && Directory.Exists(folder);
+        }
 
         // Derive the export folder name from the latest generated artifact.
         string BuildExternalExportFolderName(SpriteSheetResult result)
@@ -389,11 +403,9 @@ namespace SmearFramework.Editor
         // Re-seed the export fields after a new pixel result is generated.
         void SyncExternalExportDefaults()
         {
-            _externalExportFolder = EditorPrefs.GetString(
-                ExportFolderPrefKey,
-                string.IsNullOrWhiteSpace(_externalExportFolder)
-                    ? DefaultExternalExportFolder()
-                    : _externalExportFolder);
+            string stored = EditorPrefs.GetString(ExportFolderPrefKey, "");
+            _externalExportFolder = IsUsableExportFolder(stored) ? stored
+                : (IsUsableExportFolder(_externalExportFolder) ? _externalExportFolder : DefaultExternalExportFolder());
             _externalExportFolderName = BuildExternalExportFolderName(_state.LastPixelResult);
             if (_resultsSection != null)
                 _resultsSection.SetPixelExport(_externalExportFolder, _externalExportFolderName);
@@ -544,16 +556,45 @@ namespace SmearFramework.Editor
             }
         }
 
+        // Marks the cache stale and flags that the next rebake must be a full bake.
+        void HandleFullBakeRequired()
+        {
+            _needsFullBake = true;
+            MarkResultsStale();
+            RefreshValidation();
+        }
+
         // Draw settings owned by the Smear Frame phase.
         void DrawSmearPhaseConfig()
         {
             BeginSectionCard("Smear Frame", SmearTint);
+
+            if (HasResultsPanel() && _state.ResultsStale)
+                EditorGUILayout.HelpBox("Rebake needed -- smear settings changed.", MessageType.Warning);
+
+            var prevSmear    = _smearConfig;
+            var prevVelocity = _velocityConfig;
+
             _smearConfigSection.Draw(
                 _smearConfig, _velocityConfig,
                 ref _smearEditor, ref _velocityEditor,
                 _layoutSection, HandleConfigChanged);
-            _smearConfig = _smearConfigSection.CurrentSmearConfig;
+            _smearConfig    = _smearConfigSection.CurrentSmearConfig;
             _velocityConfig = _smearConfigSection.CurrentVelocityConfig;
+
+            // asset swap -- auto trigger a quick rebake
+            bool smearSwapped    = _smearConfig    != prevSmear;
+            bool velocitySwapped = _velocityConfig != prevVelocity;
+            if ((smearSwapped || velocitySwapped) && _characterPrefab != null && _clip != null
+                && IsCacheUsable() && _cachedPrefab == _characterPrefab && _cachedClip == _clip)
+            {
+                _lastChangeTime = EditorApplication.timeSinceStartup;
+                _pendingRebake  = true;
+            }
+
+            // velocity params invalidate cached motion -- force full bake
+            if (_smearConfigSection.VelocityParamChanged)
+                HandleFullBakeRequired();
 
             DrawGroupGap();
             EditorGUILayout.LabelField("Debug output", EditorStyles.miniBoldLabel);
@@ -573,6 +614,8 @@ namespace SmearFramework.Editor
         void DrawPixelizationPhaseConfig()
         {
             BeginSectionCard("Pixelization", PixelTint);
+            if (HasResultsPanel() && _state.ResultsStale)
+                EditorGUILayout.HelpBox("Rebake needed -- pixel settings changed.", MessageType.Warning);
             _pixelizationSection.Draw(
                 _outputConfig, ref _outputEditor,
                 _postProcessConfig, ref _postProcessEditor,
@@ -830,6 +873,7 @@ namespace SmearFramework.Editor
                     _cachedTrajectory = pipeline.Context.Get<TrajectoryData>("trajectory");
                 _cachedPrefab = _characterPrefab;
                 _cachedClip = _clip;
+                _needsFullBake = false;
 
                 UpdateAvailableArtifacts(pipeline.Context, "in-session bake");
 

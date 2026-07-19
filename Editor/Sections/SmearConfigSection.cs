@@ -15,6 +15,8 @@ namespace SmearFramework.Editor
 
         public SmearEffectsConfig CurrentSmearConfig => _smearConfig;
         public VelocityConfig CurrentVelocityConfig => _velocityConfig;
+        // set each Draw call: true when playbackSpeed or temporalSmoothingWindow changed (needs full rebake)
+        public bool VelocityParamChanged { get; private set; }
 
         // Draws the smear-frame settings UI and reports changes through onChanged.
         public void Draw(
@@ -27,6 +29,7 @@ namespace SmearFramework.Editor
         {
             _smearConfig = smearConfig;
             _velocityConfig = velocityConfig;
+            VelocityParamChanged = false;
 
             bool narrow = EditorGUIUtility.currentViewWidth < 600f;
             bool changed = false;
@@ -90,6 +93,7 @@ namespace SmearFramework.Editor
                     {
                         vso.ApplyModifiedProperties();
                         changed = true;
+                        VelocityParamChanged = true;
                     }
                     else
                     {
