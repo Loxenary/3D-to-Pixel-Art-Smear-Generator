@@ -17,25 +17,13 @@
 
 ---
 
-This is a Unity editor package with two independent workflows. Run them together in one click, or run each one on its own across separate sessions.
+<div align="center">
+  <img src=".github/preview.png" alt="3D source vs pixel art output" width="700"/>
+</div>
 
 **Smear frames** are those stretched distortions you see on fast attacks in 2D fighting games — normally drawn by hand for every move. This generates them automatically from the 3D mesh.
 
-<!-- replace with a before/after screenshot or GIF: 3D source frame on the left, pixel art result on the right -->
-> **[ screenshot needed: 3D source frame → pixel art output, side by side ]**
-
----
-
-## How it works
-
-**Smear Bake** takes a rigged 3D character and an animation clip. It reads how fast each bone is moving, builds smear geometry on the fast-moving parts (stretched mesh, ghost copies, motion lines), and renders the character at high resolution. Output: a PNG + JSON on disk.
-
-**Pixel Art** takes that PNG + JSON and converts it. It downscales while keeping smear shapes intact, locks a consistent color palette across every frame, and packs everything into a sprite sheet with an animation clip and prefab.
-
-Each workflow is standalone. You can also chain them — run both back to back without touching any files manually.
-
-<!-- replace with a GIF of the tool window running a bake -->
-> **[ GIF needed: Smear Generator window — picking a character, hitting Run Pipeline, seeing output appear ]**
+For a full walkthrough, watch the tutorial: **[ video link ]**
 
 ---
 
