@@ -17,24 +17,24 @@
 
 ---
 
-This is a Unity editor package. You give it a rigged 3D character and an animation clip. It measures how fast each part of the character is moving, generates smear geometry on the fast-moving parts, renders everything at high resolution, then converts those frames into pixel art and exports a ready-to-use sprite sheet with animation clip and prefab.
+This is a Unity editor package with two independent workflows. Run them together in one click, or run each one on its own across separate sessions.
 
 **Smear frames** are those stretched distortions you see on fast attacks in 2D fighting games — normally drawn by hand for every move. This generates them automatically from the 3D mesh.
 
-<!-- replace with a before/after GIF or screenshot: 3D source on left, pixel art result on right -->
-> **[ screenshot needed: 3D source frame → pixel art output side by side ]**
+<!-- replace with a before/after screenshot or GIF: 3D source frame on the left, pixel art result on the right -->
+> **[ screenshot needed: 3D source frame → pixel art output, side by side ]**
 
 ---
 
 ## How it works
 
-**Step 1 — Smear Bake:** reads bone velocity from the mesh, builds smear geometry on fast-moving parts (stretched mesh, ghost copies, motion lines), then renders the character at high resolution to disk.
+**Smear Bake** takes a rigged 3D character and an animation clip. It reads how fast each bone is moving, builds smear geometry on the fast-moving parts (stretched mesh, ghost copies, motion lines), and renders the character at high resolution. Output: a PNG + JSON on disk.
 
-**Step 2 — Pixel Art Conversion:** loads those high-res frames, downscales while keeping the smear shapes intact, locks a consistent color palette across every frame, packs it into a sprite sheet.
+**Pixel Art** takes that PNG + JSON and converts it. It downscales while keeping smear shapes intact, locks a consistent color palette across every frame, and packs everything into a sprite sheet with an animation clip and prefab.
 
-Both steps can run back-to-back or in separate sessions — the files on disk are the only handoff.
+Each workflow is standalone. You can also chain them — run both back to back without touching any files manually.
 
-<!-- replace with a GIF showing the tool window running a bake -->
+<!-- replace with a GIF of the tool window running a bake -->
 > **[ GIF needed: Smear Generator window — picking a character, hitting Run Pipeline, seeing output appear ]**
 
 ---
@@ -92,13 +92,13 @@ No third-party package dependencies. Tests use Unity Test Framework 1.6.0.
 
 ---
 
-## Pipeline modes
+## Modes
 
 | Mode | What it does |
 |---|---|
-| **Full** | Runs both steps end-to-end. Use this for a normal bake. |
-| **Smear Bake** | Step 1 only — renders high-res frames. Use when tuning smear settings before committing to pixel conversion. |
-| **Pixel Art** | Step 2 only — re-runs pixelization from a previous high-res capture. Use when tweaking palette or resolution without re-rendering the 3D scene. |
+| **Full** | Chains both workflows end-to-end. One click from 3D character to finished pixel art sprite sheet. |
+| **Smear Bake** | Standalone — takes a 3D character and outputs high-res frames. Use when tuning smear settings. |
+| **Pixel Art** | Standalone — takes a previous high-res capture and re-runs pixel conversion. Use when tweaking palette or resolution without re-rendering. |
 
 ---
 
@@ -141,7 +141,7 @@ Assets/SmearGenerator.Generated/Output/<name>/
 | Pixels per unit | Unity units per pixel. Match this to your game's pixel density. |
 | Loop playback | Whether the generated clip loops. Turn off for one-shot actions like attacks. |
 | Pivot normalized | Sprite anchor point. Bottom-center works for most characters. |
-| Save high-res to disk | Keep the raw 3D render so you can re-run just the pixel step later. |
+| Save high-res to disk | Keep the raw 3D render so you can re-run the Pixel Art workflow later without re-rendering. |
 
 ### Post-process / palette
 
@@ -193,7 +193,7 @@ The importer uses the PNG and JSON as the source of truth. Do not drag the prefa
 
 **Imported prefab has missing sprites** — Delete the broken import and run the importer again from the exported folder.
 
-**Pixel Art mode has no input** — It needs a high-res PNG + JSON from a previous Smear Bake or Full run. Select those files first.
+**Pixel Art mode has no input** — Select the high-res PNG + JSON from a previous Smear Bake or Full run first.
 
 **Package update does not appear** — Manually update the git tag in `Packages/manifest.json` and commit both `manifest.json` and `packages-lock.json`.
 
