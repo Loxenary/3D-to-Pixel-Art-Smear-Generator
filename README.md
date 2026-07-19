@@ -21,34 +21,21 @@ This is a Unity editor package. You give it a rigged 3D character and an animati
 
 **Smear frames** are those stretched distortions you see on fast attacks in 2D fighting games — normally drawn by hand for every move. This generates them automatically from the 3D mesh.
 
+<!-- replace with a before/after GIF or screenshot: 3D source on left, pixel art result on right -->
+> **[ screenshot needed: 3D source frame → pixel art output side by side ]**
+
 ---
 
 ## How it works
 
-Two offline steps. Disk is the handoff between them — you can run both in one click or in separate sessions.
+**Step 1 — Smear Bake:** reads bone velocity from the mesh, builds smear geometry on fast-moving parts (stretched mesh, ghost copies, motion lines), then renders the character at high resolution to disk.
 
-```
-[ 3D character + animation clip ]
-            |
-            |  Step 1 — Smear Bake
-            |
-            |  measure bone and vertex velocity
-            |  build smear geometry (stretch / ghost copies / motion lines)
-            |  render at high resolution
-            |
-            v
-   character_highres.png  +  character_highres.json
-            |
-            |  Step 2 — Pixel Art Conversion
-            |
-            |  downscale while preserving smear shapes
-            |  build a consistent color palette across all frames
-            |  pack into a sprite sheet
-            |
-            v
-   character_pixel.png  +  character_pixel.json
-   AnimationClip  +  AnimatorController  +  Prefab
-```
+**Step 2 — Pixel Art Conversion:** loads those high-res frames, downscales while keeping the smear shapes intact, locks a consistent color palette across every frame, packs it into a sprite sheet.
+
+Both steps can run back-to-back or in separate sessions — the files on disk are the only handoff.
+
+<!-- replace with a GIF showing the tool window running a bake -->
+> **[ GIF needed: Smear Generator window — picking a character, hitting Run Pipeline, seeing output appear ]**
 
 ---
 
@@ -83,7 +70,7 @@ This tracks the `release` branch. Pin to a specific version with a tag like `#v0
 | | |
 |---|---|
 | Unity | 6000.3 or newer (verified on 6000.3.6f1) |
-| Character | must have a `SkinnedMeshRenderer` |
+| Character | must have a SkinnedMeshRenderer |
 | Animation | must be compatible with the character |
 
 No third-party package dependencies. Tests use Unity Test Framework 1.6.0.
@@ -100,6 +87,9 @@ No third-party package dependencies. Tests use Unity Test Framework 1.6.0.
 6. Click **Run pipeline**.
 7. Find your sprite sheet, animation clip, and prefab in `Assets/SmearGenerator.Generated/`.
 
+<!-- replace with a screenshot of the Smear Generator window with a character loaded -->
+> **[ screenshot needed: Smear Generator window with character and clip assigned ]**
+
 ---
 
 ## Pipeline modes
@@ -107,8 +97,8 @@ No third-party package dependencies. Tests use Unity Test Framework 1.6.0.
 | Mode | What it does |
 |---|---|
 | **Full** | Runs both steps end-to-end. Use this for a normal bake. |
-| **Smear Bake** | Step 1 only — renders high-res frames. Use when you want to tune smear settings before committing to pixel conversion. |
-| **Pixel Art** | Step 2 only — loads a previous high-res capture and re-runs pixelization. Use when tweaking palette or resolution without re-rendering the 3D scene. |
+| **Smear Bake** | Step 1 only — renders high-res frames. Use when tuning smear settings before committing to pixel conversion. |
+| **Pixel Art** | Step 2 only — re-runs pixelization from a previous high-res capture. Use when tweaking palette or resolution without re-rendering the 3D scene. |
 
 ---
 
@@ -131,9 +121,9 @@ Assets/SmearGenerator.Generated/Output/<name>/
 | Menu item | When to use it |
 |---|---|
 | **Open Smear Generator** | Main workflow — preview and bake. |
-| **FBX Avatar Setup** | Character and clip come from different FBX files (e.g. Mixamo body + separate animation). Run this first, then go back to the main window. |
-| **FBX Texture Fixer** | Character imports as solid white. Extracts embedded textures from the FBX into the `.fbm` folder Unity expects. |
-| **Utilities > Import Exported Pixel Art Animation** | Moving a generated animation to another Unity project. Do not drag the `.prefab` directly — use this importer so Unity rebuilds asset references. |
+| **FBX Avatar Setup** | Character and clip come from different FBX files (e.g. Mixamo body + separate animation). Run this first. |
+| **FBX Texture Fixer** | Character imports as solid white. Extracts embedded textures from the FBX into the folder Unity expects. |
+| **Utilities > Import Exported Pixel Art Animation** | Moving a generated animation to another Unity project. Do not drag the prefab directly — use this so Unity rebuilds asset references. |
 
 ---
 
@@ -191,7 +181,7 @@ Assets/SmearGenerator.Generated/Output/<name>/
 3. Select the exported folder.
 4. Use the rebuilt prefab from `Assets/SmearGenerator.Generated/ImportedPackages/<name>/`.
 
-The importer uses the PNG and JSON as the source of truth. Do not drag the `.prefab` directly into Assets — the sprite references will be missing.
+The importer uses the PNG and JSON as the source of truth. Do not drag the prefab directly into Assets — the sprite references will be missing.
 
 ---
 
@@ -199,9 +189,9 @@ The importer uses the PNG and JSON as the source of truth. Do not drag the `.pre
 
 **Character is solid white** — Open FBX Texture Fixer, fix the FBX, preview again.
 
-**Character or animation is distorted** — Open FBX Avatar Setup. Make sure both the character and clip FBX have valid humanoid avatars.
+**Character or animation is distorted** — Open FBX Avatar Setup. Make sure both FBX files have valid humanoid avatars.
 
-**Imported prefab has missing sprites** — Delete the broken import and run the importer again from the exported folder. Do not copy the `.prefab` by itself.
+**Imported prefab has missing sprites** — Delete the broken import and run the importer again from the exported folder.
 
 **Pixel Art mode has no input** — It needs a high-res PNG + JSON from a previous Smear Bake or Full run. Select those files first.
 
