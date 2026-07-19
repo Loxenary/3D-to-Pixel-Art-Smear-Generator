@@ -11,7 +11,7 @@ namespace SmearFramework.Editor
         [SerializeField] private string _folderPath;
         private string _status;
 
-        [MenuItem("Smear Generator/FBX Texture Fixer")]
+        [MenuItem("Smear Generator/Utilities/FBX Texture Fixer")]
         static void Open()
         {
             var window = GetWindow<FbxTextureFixerWindow>("FBX Texture Fixer");

@@ -7,8 +7,8 @@ namespace SmearFramework.AnimationSampling
     /// <summary>Samples clip poses directly or through Mecanim retargeting.</summary>
     public sealed class ClipPoseSampler : System.IDisposable
     {
-        const string HumanoidSetupMessage = "Humanoid clips need a target with a valid humanoid avatar. Run Smear Generator/FBX Avatar Setup, assign Character Fbx and Clip Fbx, then click Prepare Retarget Pair.";
-        const string GenericSetupMessage = "Generic clips only work on the same rig hierarchy. For cross-character clips, run Smear Generator/FBX Avatar Setup, assign Character Fbx and Clip Fbx, then click Prepare Retarget Pair.";
+        const string HumanoidSetupMessage = "Humanoid clips need a target with a valid humanoid avatar. Use Smear Generator > Utilities > Humanoid Avatar Setup on the character, or Retarget Character to pair the character and clip FBX.";
+        const string GenericSetupMessage = "Generic clips only work on the same rig hierarchy. For cross-character clips, use Smear Generator > Utilities > Retarget Character to pair the character and clip FBX.";
 
         private readonly GameObject _target;
         private readonly AnimationClip _clip;
@@ -97,6 +97,18 @@ namespace SmearFramework.AnimationSampling
             return null;
         }
 
+        // Classify why a clip cannot be sampled on the current target, for use by the UI to show fix buttons.
+        public static InputProblemKind ClassifyInputProblem(GameObject target, AnimationClip clip)
+        {
+            if (target == null || clip == null)
+                return InputProblemKind.None;
+            if (clip.humanMotion && !NeedsMecanim(target, clip))
+                return InputProblemKind.HumanoidSetup;
+            if (HasTransformBindings(clip) && !HasAnyResolvableTransformPath(target, clip))
+                return InputProblemKind.GenericSetup;
+            return InputProblemKind.None;
+        }
+
         // Check whether the clip animates any transform paths.
         static bool HasTransformBindings(AnimationClip clip)
         {
@@ -149,4 +161,6 @@ namespace SmearFramework.AnimationSampling
             return target != null ? target.GetComponentInChildren<Animator>(true) : null;
         }
     }
+
+    public enum InputProblemKind { None, HumanoidSetup, GenericSetup }
 }

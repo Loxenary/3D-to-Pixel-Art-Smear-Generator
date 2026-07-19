@@ -266,7 +266,10 @@ namespace SmearFramework.Editor
 
             string inputProblem = BuildInputProblem();
             if (!string.IsNullOrEmpty(inputProblem))
+            {
                 EditorGUILayout.HelpBox(inputProblem, MessageType.Warning);
+                DrawInputFixButtons();
+            }
 
             EditorGUI.BeginDisabledGroup(_characterPrefab == null || _clip == null || !string.IsNullOrEmpty(inputProblem));
             if (GUILayout.Button("Preview animation", EditorStyles.miniButton, GUILayout.ExpandWidth(true), GUILayout.Height(SecondaryButtonHeight)))
@@ -1905,6 +1908,23 @@ namespace SmearFramework.Editor
                 return "Selected clip is generated output, not a source animation.";
 
             return null;
+        }
+
+        // Show one or two small fix buttons when the input problem is a rig/retarget issue.
+        void DrawInputFixButtons()
+        {
+            var kind = ClipPoseSampler.ClassifyInputProblem(_characterPrefab, _clip);
+            if (kind == InputProblemKind.None)
+                return;
+            EditorGUILayout.BeginHorizontal();
+            if (kind == InputProblemKind.HumanoidSetup)
+            {
+                if (GUILayout.Button("Fix: Set to Humanoid", EditorStyles.miniButton))
+                    HumanoidAvatarWindow.OpenWith(_characterPrefab);
+            }
+            if (GUILayout.Button("Fix: Retarget Pair", EditorStyles.miniButton))
+                RetargetCharacterWindow.OpenWith(_characterPrefab);
+            EditorGUILayout.EndHorizontal();
         }
 
         // Returns true when the clip lives in a generated output folder or has a generated name suffix.
