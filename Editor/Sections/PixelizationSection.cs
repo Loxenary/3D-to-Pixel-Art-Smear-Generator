@@ -106,8 +106,8 @@ namespace SmearFramework.Editor
                     layout.DrawGroupGap();
                     EditorGUI.BeginChangeCheck();
                     reusePalette = EditorGUILayout.ToggleLeft(
-                        new GUIContent("Use consistent colors for every frame",
-                            "When on, colors are picked once and applied to the whole animation -- the sprite won't flicker between different shades as it plays. Turn off only if certain frames look washed out because their colors are too different from the rest."),
+                        new GUIContent("Prevent color flickering between frames",
+                            "When on, one shared set of colors is used for the whole animation so colors don't shift or pop as it plays. When off, each frame picks its own best colors independently -- more accurate per frame but can cause subtle color changes between frames."),
                         reusePalette);
                     changed |= EditorGUI.EndChangeCheck();
                 }
