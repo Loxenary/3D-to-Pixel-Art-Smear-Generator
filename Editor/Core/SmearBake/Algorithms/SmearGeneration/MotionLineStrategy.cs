@@ -129,12 +129,13 @@ namespace SmearFramework.SmearGeneration
             Vector3 side = Vector3.Cross(dir, Vector3.forward).normalized * config.MotionLineThickness * 0.5f;
             if (side.sqrMagnitude < 0.00001f)
                 side = Vector3.Cross(dir, Vector3.right).normalized * config.MotionLineThickness * 0.5f;
+            side *= Mathf.Max(0.001f, config.SmearStrength);
 
             int baseIdx = _verts.Count;
 
             float alpha = 1f - ((float)segIndex / segCount);
             var col = config.MotionLineColor;
-            col.a = Mathf.Clamp01(col.a * alpha);
+            col.a = Mathf.Clamp01(col.a * alpha * config.SmearStrength);
 
             _verts.Add(prevPos + side);
             _verts.Add(prevPos - side);
