@@ -76,7 +76,7 @@ namespace SmearFramework.Editor
         [SerializeField] private PreviewViewState _rightView = PreviewViewState.Default;
         private Vector3 _captureCameraEuler;
         [SerializeField] private bool _showHeatmap;
-        [SerializeField] private bool _showPivotLine = true;
+        [SerializeField] private bool _showPivotLine;
         [SerializeField] private ComparisonStage _leftComparisonStage = ComparisonStage.Pixelated;
         [SerializeField] private string _externalExportFolder;
         [SerializeField] private string _externalExportFolderName;
