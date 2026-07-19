@@ -1471,7 +1471,7 @@ namespace SmearFramework.Editor
             float presetWidth = Mathf.Ceil(EditorStyles.miniButton.CalcSize(new GUIContent("Top-down RPG ▾")).x);
             float desiredWidth = Mathf.Max(presetWidth + 62f, 222f);
             float width = Mathf.Min(desiredWidth, Mathf.Max(180f, viewport.width - 16f));
-            float extraHeight = _cameraAngleDirty && CanRunCurrentMode() ? 34f : 0f;
+            float extraHeight = _cameraAngleDirty && HasValidLiveInput() ? 34f : 0f;
             return new Rect(viewport.x + 8f, viewport.yMax - 98f - extraHeight, width, 90f + extraHeight);
         }
 
@@ -1486,7 +1486,7 @@ namespace SmearFramework.Editor
             const float rollButtonWidth = 42f;
 
             float yOff = 0f;
-            if (_cameraAngleDirty && CanRunCurrentMode())
+            if (_cameraAngleDirty && HasValidLiveInput())
             {
                 var oldBg = GUI.backgroundColor;
                 GUI.backgroundColor = new Color(0.85f, 0.55f, 0.15f);
@@ -1605,16 +1605,18 @@ namespace SmearFramework.Editor
         // Stashes and restores the smear results so the baked animation is not wiped.
         void DoPreviewCameraAngle()
         {
-            var savedSmear      = _smearFrames;
-            var savedIntensity  = _perFrameIntensity;
-            int savedSmearCount = _smearFrameCount;
-            float savedMaxInt   = _maxIntensity;
-            int savedFrame      = _frame;
-            bool savedPlaying   = _playing;
+            var savedSmear        = _smearFrames;
+            var savedCleanPixel   = _cleanPixelFrames;
+            var savedIntensity    = _perFrameIntensity;
+            int savedSmearCount   = _smearFrameCount;
+            float savedMaxInt     = _maxIntensity;
+            int savedFrame        = _frame;
+            bool savedPlaying     = _playing;
 
             DoPreviewAnimation();
 
             _smearFrames       = savedSmear;
+            _cleanPixelFrames  = savedCleanPixel;  // restore so 3D/Pixel toggle stays intact
             _perFrameIntensity = savedIntensity;
             _smearFrameCount   = savedSmearCount;
             _maxIntensity      = savedMaxInt;
