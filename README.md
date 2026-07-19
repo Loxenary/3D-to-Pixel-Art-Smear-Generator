@@ -215,18 +215,52 @@ The generated controller starts in the generated animation state. Looping follow
 
 ## Configuration
 
-The main window exposes configuration for:
+The main window exposes configuration across three foldout sections.
 
-- capture resolution and camera angle;
-- animation sampling FPS;
-- smear activation and effect types;
-- palette size;
-- pixel-art output dimensions;
-- temporal coherence;
-- outline settings; and
-- output naming and export location.
+### Pixel parameters
+
+| Control | Effect |
+|---|---|
+| **Output resolution** | Final pixel-art frame size in pixels. 64 is a good starting point for most characters. |
+| **Capture resolution** | Internal 3D render size before downscaling. Higher values preserve more detail but bake slower. |
+| **Palette size** | Max color count when auto palette generation is used. Ignored when a palette LUT is assigned. |
+| **Outline** | Draws a solid silhouette outline. Most pixel-art games use this for readability at small sizes. |
+| **Outline color** | Color of the silhouette outline. Dark desaturated colors blend better with most palettes. |
+| **Pixels per unit** | Unity units per sprite pixel. Match this to the target game's pixel density. |
+| **Loop playback** | Whether the generated animation clip loops. Disable for one-shot actions like attacks. |
+| **Pivot normalized** | Sprite anchor point in normalized coordinates. Bottom-center works for most characters. |
+| **Save high-res to disk** | Also writes the raw 3D capture PNG before pixelization. Useful for re-running just the pixel step later. |
+
+### Post-process / palette
+
+| Control | Effect |
+|---|---|
+| **Post process config** | Optional asset that controls palette quantization, flicker suppression, and downscale quality. Leave empty to use built-in defaults. |
+| **Palette LUT** | Lock to a fixed artist palette. Every output pixel snaps to the nearest color here. Leave empty to let the pipeline generate a palette automatically from the animation frames. |
+| **Auto palette size** | Number of colors the palette generator picks when no fixed palette is set. |
+| **Edge refine passes** | How many times the downscaler sharpens edge kernels before sampling. Higher gives crisper outlines at the cost of bake time. 5 is the default. |
+| **Flicker suppress** | How much a pixel's color must change between frames before it updates. Higher values reduce inter-frame noise but can slow the appearance of genuine color transitions. |
+| **Reuse palette across frames** | Build the palette once from a seed frame and apply it to all frames. Keeps colors consistent across the animation and bakes faster. Disable to run full palette generation per frame. |
+
+### Smear controls
+
+| Control | Effect |
+|---|---|
+| **Target FPS** | Animation samples captured per second. Lower values produce fewer, choppier frames; higher values produce more frames and take more memory. |
+| **Playback speed** | Sampled animation speed. Faster playback increases measured motion and can trigger stronger smears. |
+| **Elongated** | Stretches moving geometry along its trajectory. Use it for fast limbs or whole-body movement. |
+| **Multiples** | Adds repeated silhouettes along the movement path. Use it when one stretched shape does not communicate the action well. |
+| **Motion lines** | Adds line geometry from the measured trajectory. Line length follows trajectory speed. |
+| **Smear strength and thresholds** | Control displacement size and the minimum motion needed before each smear type activates. Change one value at a time, then rebake. |
 
 Use preview before a full run. Framing, retargeting, and missing material textures are easier to correct before the pipeline writes every frame.
+
+The Results card shows **Rebake needed** after a parameter change. The old result stays available for comparison and export until the next bake replaces it.
+
+### Debug view
+
+Enable **Velocity heatmap** after a bake to inspect measured motion in the 3D source pane. Blue marks slower regions and red marks faster regions. The heatmap does not alter the generated pixel art.
+
 
 ## Troubleshooting
 
