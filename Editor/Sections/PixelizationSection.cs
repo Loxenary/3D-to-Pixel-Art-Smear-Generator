@@ -94,8 +94,8 @@ namespace SmearFramework.Editor
                         new GUIContent("Edge Sharpness",
                             "How many passes the pixelizer runs to sharpen color boundaries before finalizing each frame. Higher = crisper outlines, slower bake. 5 is a safe default for most characters."));
                     EditorGUILayout.PropertyField(so.FindProperty("_flickerSuppressOnDistance"),
-                        new GUIContent("Flicker Reduction",
-                            "Prevents pixels from switching colors between frames when the change is too small to notice. Raise this if individual pixels flicker on and off. Set to 0 to disable."));
+                        new GUIContent("Single-pixel Noise",
+                            "Stops individual pixels from blinking between two nearly identical shades on consecutive frames. Useful when you see a single pixel that keeps switching color while the rest of the image is stable. Raise to suppress more. Set to 0 to disable."));
 
                     changed |= EditorGUI.EndChangeCheck();
                     so.ApplyModifiedProperties();
@@ -103,8 +103,8 @@ namespace SmearFramework.Editor
                     layout.DrawGroupGap();
                     EditorGUI.BeginChangeCheck();
                     reusePalette = EditorGUILayout.ToggleLeft(
-                        new GUIContent("Prevent color flickering between frames",
-                            "When on, one shared set of colors is used for the whole animation so colors don't shift or pop as it plays. When off, each frame picks its own best colors independently -- more accurate per frame but can cause subtle color changes between frames."),
+                        new GUIContent("Lock color set for whole animation",
+                            "When on, all frames share one color set instead of each frame picking its own. Prevents the overall color scheme from shifting as the animation plays. The Single-pixel Noise option above handles individual blinking pixels -- this handles the whole color scheme."),
                         reusePalette);
                     changed |= EditorGUI.EndChangeCheck();
                 }
