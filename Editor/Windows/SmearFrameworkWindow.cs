@@ -617,12 +617,16 @@ namespace SmearFramework.Editor
             BeginSectionCard("Pixelization", PixelTint);
             if (HasResultsPanel() && _state.ResultsStale)
                 EditorGUILayout.HelpBox("Rebake needed -- pixel settings changed.", MessageType.Warning);
+            string configProblem = BuildConfigProblem();
+            if (!string.IsNullOrEmpty(configProblem))
+                EditorGUILayout.HelpBox(configProblem, MessageType.Warning);
             _pixelizationSection.Draw(
                 _outputConfig, _postProcessConfig,
                 ref _reusePaletteAcrossFrames,
                 _layoutSection, ref _showPivotLine, HandleConfigChanged);
             _outputConfig      = _pixelizationSection.CurrentOutputConfig;
             _postProcessConfig = _pixelizationSection.CurrentPostProcessConfig;
+            EndSectionCard();
         }
 
         // Draw nested config inspectors in narrow mode without forcing a wide horizontal layout.
@@ -1831,17 +1835,35 @@ namespace SmearFramework.Editor
         // Smear workflows always require live character and clip input; pixel-only runs may use a loaded sheet.
         bool CanRunCurrentMode()
         {
+            if (!string.IsNullOrEmpty(BuildConfigProblem()))
+                return false;
             if (HasSmearStage())
                 return HasValidLiveInput();
             return HasValidLiveInput() || _state.HasHighResSource;
         }
 
-        // Explains the exact missing input for the selected workflow.
+        // Explains the exact missing input or config for the selected workflow.
         string BuildRunRequirementMessage()
         {
+            string configProblem = BuildConfigProblem();
+            if (!string.IsNullOrEmpty(configProblem))
+                return configProblem;
             return HasSmearStage()
                 ? "Drop a character + animation clip to run this smear workflow."
                 : "Drop a character + animation clip, or load a high-res sheet.";
+        }
+
+        // Returns a message when a required config is missing for the active stage set.
+        string BuildConfigProblem()
+        {
+            if (HasPixelizationStage())
+            {
+                if (_outputConfig == null)
+                    return "Pixelization config is missing -- assign one in the Pixelization section.";
+                if (_postProcessConfig == null)
+                    return "Post-process config is missing -- assign one in the Pixelization section.";
+            }
+            return null;
         }
 
         // any stage consumes frames_highres before any earlier stage produces it?
