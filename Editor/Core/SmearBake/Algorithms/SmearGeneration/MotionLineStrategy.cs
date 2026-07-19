@@ -66,15 +66,19 @@ namespace SmearFramework.SmearGeneration
             return seeds;
         }
 
+        // Derive per-vertex speed from the bone linearVelocity already computed during extraction,
+        // propagated through skinning weights -- same source the velocity heatmap uses.
         private float[] ComputeVertexSpeeds(MotionData motion, int frame)
         {
-            int prev = Mathf.Max(frame - 1, 0);
-            var speeds = new float[motion.VertexCount];
+            var speeds  = new float[motion.VertexCount];
+            var weights = motion.PropagatedWeights;
+            if (weights == null) return speeds;
             for (int v = 0; v < motion.VertexCount; v++)
             {
-                speeds[v] = Vector3.Distance(
-                    motion.Vertices[frame][v].position,
-                    motion.Vertices[prev][v].position) * motion.Fps;
+                float speed = 0f;
+                for (int b = 0; b < motion.BoneCount; b++)
+                    speed += weights[v][b] * motion.Bones[frame][b].linearVelocity.magnitude;
+                speeds[v] = speed;
             }
             return speeds;
         }
@@ -125,13 +129,12 @@ namespace SmearFramework.SmearGeneration
             Vector3 side = Vector3.Cross(dir, Vector3.forward).normalized * config.MotionLineThickness * 0.5f;
             if (side.sqrMagnitude < 0.00001f)
                 side = Vector3.Cross(dir, Vector3.right).normalized * config.MotionLineThickness * 0.5f;
-            side *= Mathf.Max(0.001f, config.SmearStrength);
 
             int baseIdx = _verts.Count;
 
             float alpha = 1f - ((float)segIndex / segCount);
             var col = config.MotionLineColor;
-            col.a = Mathf.Clamp01(col.a * alpha * config.SmearStrength);
+            col.a = Mathf.Clamp01(col.a * alpha);
 
             _verts.Add(prevPos + side);
             _verts.Add(prevPos - side);
