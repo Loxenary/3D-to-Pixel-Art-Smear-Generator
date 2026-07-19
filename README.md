@@ -1,307 +1,223 @@
-# 3D-to-Pixel-Art Smear Generator
+<div align="center">
+  <img src=".github/logo.png" alt="3D to Pixel Art with Smear" width="580"/>
 
-A Unity editor package for baking 3D character animation into pixel-art sprite animation, with optional smear frames generated from character motion.
+  <br/>
+  <br/>
 
-The generator runs in the Unity Editor. It samples an animation clip, measures bone and vertex motion, creates smear geometry, captures high-resolution frames, converts those frames to pixel art, and exports a sprite animation package.
+  ![Unity](https://img.shields.io/badge/Unity-6000.3.6f1-black?logo=unity)
+  ![Language](https://img.shields.io/badge/Language-C%23-239120?logo=csharp)
+  ![Platform](https://img.shields.io/badge/Platform-Editor%20Tool-blueviolet)
+  ![Release](https://img.shields.io/github/v/tag/Loxenary/3D-to-Pixel-Art-Smear-Generator?label=latest)
 
-## What the generator produces
+  <br/>
 
-A full bake creates:
+  **Drop in a 3D character and an animation clip. Get back pixel art sprite sheets with smear frames already baked in.**
 
-- a pixel-art sprite sheet PNG;
-- `animation.json` with frame rectangles, timing, pivot, and smear metadata;
-- `package.json` identifying the portable animation folder;
-- a Unity `AnimationClip` that changes `SpriteRenderer.m_Sprite`;
-- an `AnimatorController` containing the generated clip; and
-- a prefab with `SpriteRenderer` and `Animator` components.
+</div>
 
-Unity project output is written under:
+---
 
-```text
-Assets/SmearGenerator.Generated/
-├── Output/
-├── ImportedPackages/
-├── Diagnostics/
-└── Temp/
+This is a Unity editor package. You give it a rigged 3D character and an animation clip. It measures how fast each part of the character is moving, generates smear geometry on the fast-moving parts, renders everything at high resolution, then converts those frames into pixel art and exports a ready-to-use sprite sheet with animation clip and prefab.
+
+**Smear frames** are those stretched distortions you see on fast attacks in 2D fighting games — normally drawn by hand for every move. This generates them automatically from the 3D mesh.
+
+---
+
+## How it works
+
+Two offline steps. Disk is the handoff between them — you can run both in one click or in separate sessions.
+
+```
+[ 3D character + animation clip ]
+            |
+            |  Step 1 — Smear Bake
+            |
+            |  measure bone and vertex velocity
+            |  build smear geometry (stretch / ghost copies / motion lines)
+            |  render at high resolution
+            |
+            v
+   character_highres.png  +  character_highres.json
+            |
+            |  Step 2 — Pixel Art Conversion
+            |
+            |  downscale while preserving smear shapes
+            |  build a consistent color palette across all frames
+            |  pack into a sprite sheet
+            |
+            v
+   character_pixel.png  +  character_pixel.json
+   AnimationClip  +  AnimatorController  +  Prefab
 ```
 
-## Requirements
-
-- Unity `6000.3` or newer in the Unity 6.3 line
-- Verified development version: Unity `6000.3.6f1`
-- A 3D character with a `SkinnedMeshRenderer`
-- An animation clip compatible with the character
-
-The core package has no external package dependencies. The included tests use Unity Test Framework `1.6.0`.
-
-See [Dependencies](Documentation~/dependencies.md) for details.
+---
 
 ## Install
 
-### From GitHub
+### From GitHub (recommended)
 
-In Unity, open **Window > Package Management > Package Manager**, select the plus button, and choose **Add package from git URL**. Enter:
+Open **Window > Package Manager**, click **+**, choose **Add package from git URL**, and enter:
 
-```text
+```
 https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator.git#release
 ```
 
-This tracks the `release` branch. The Package Manager **Update** button will appear when a new version is published. To pin to a specific version, use a tag like `#v0.2.3` instead.
-
-The same dependency can be added to the target project's `Packages/manifest.json`:
+Or add it to `Packages/manifest.json` directly:
 
 ```json
 "com.davis.smear-generator": "https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator.git#release"
 ```
 
-### From a local clone
+This tracks the `release` branch. Pin to a specific version with a tag like `#v0.2.3`.
 
-Select **Add package from disk** and choose this repository's `package.json`, or add a local dependency:
+### From a local clone
 
 ```json
 "com.davis.smear-generator": "file:/absolute/path/to/3D-to-Pixel-Art-Smear-Generator"
 ```
 
+---
+
+## Requirements
+
+| | |
+|---|---|
+| Unity | 6000.3 or newer (verified on 6000.3.6f1) |
+| Character | must have a `SkinnedMeshRenderer` |
+| Animation | must be compatible with the character |
+
+No third-party package dependencies. Tests use Unity Test Framework 1.6.0.
+
+---
+
+## Quick start
+
+1. Install the package.
+2. Open **Smear Generator > Open Smear Generator**.
+3. Set mode to **Full**.
+4. Assign your character model and animation clip.
+5. Click **Preview animation** — check that the pose and textures look right.
+6. Click **Run pipeline**.
+7. Find your sprite sheet, animation clip, and prefab in `Assets/SmearGenerator.Generated/`.
+
+---
+
+## Pipeline modes
+
+| Mode | What it does |
+|---|---|
+| **Full** | Runs both steps end-to-end. Use this for a normal bake. |
+| **Smear Bake** | Step 1 only — renders high-res frames. Use when you want to tune smear settings before committing to pixel conversion. |
+| **Pixel Art** | Step 2 only — loads a previous high-res capture and re-runs pixelization. Use when tweaking palette or resolution without re-rendering the 3D scene. |
+
+---
+
+## What a bake produces
+
+```
+Assets/SmearGenerator.Generated/Output/<name>/
+├── <name>.png              sprite sheet
+├── animation.json          frame rects, timing, pivot, smear metadata
+├── package.json            portable package descriptor
+├── <name>_2d.anim          Unity AnimationClip
+├── <name>_2d.controller    AnimatorController
+└── <name>_2d.prefab        prefab with SpriteRenderer + Animator
+```
+
+---
+
 ## Tools
 
-The **Smear Generator** menu contains one main workflow window and three supporting tools.
+| Menu item | When to use it |
+|---|---|
+| **Open Smear Generator** | Main workflow — preview and bake. |
+| **FBX Avatar Setup** | Character and clip come from different FBX files (e.g. Mixamo body + separate animation). Run this first, then go back to the main window. |
+| **FBX Texture Fixer** | Character imports as solid white. Extracts embedded textures from the FBX into the `.fbm` folder Unity expects. |
+| **Utilities > Import Exported Pixel Art Animation** | Moving a generated animation to another Unity project. Do not drag the `.prefab` directly — use this importer so Unity rebuilds asset references. |
 
-| Menu item | Purpose | When to use it |
-|---|---|---|
-| **Open Smear Generator** | Preview and bake 3D animation into high-resolution or pixel-art frame output. | Use this for the normal animation pipeline. |
-| **FBX Avatar Setup** | Prepare a character FBX and animation FBX for humanoid retargeting. | Use this when the clip comes from another humanoid model or preview reports an avatar mismatch. |
-| **FBX Texture Fixer** | Extract embedded PNG textures from an FBX into the `.fbm` folder Unity expects. | Use this when an imported character is white or its material textures are missing. |
-| **Utilities > Import Exported Pixel Art Animation** | Rebuild Unity sprite, clip, controller, and prefab assets from pixel-art output exported by this generator. | Use this only when moving generated pixel-art animation to another Unity project or device. |
-
-## 1. Smear Generator window
-
-Open **Smear Generator > Open Smear Generator**.
-
-The window has three pipeline modes:
-
-### Full
-
-Runs both offline workflows in sequence:
-
-```text
-3D character + animation
-    -> velocity extraction
-    -> smear generation
-    -> high-resolution capture
-    -> pixel-art conversion
-    -> sprite package export
-```
-
-Choose **Full** when starting with a 3D character and wanting a ready-to-use pixel animation prefab.
-
-### Smear Bake
-
-Runs the 3D side of the pipeline and produces high-resolution frames plus metadata. It does not run pixel-art conversion.
-
-Choose **Smear Bake** when evaluating smear output, tuning capture settings, or saving high-resolution frames for later processing.
-
-### Pixel Art
-
-Loads previously captured high-resolution PNG and JSON files, then runs pixelization and sprite package export without sampling the 3D character again.
-
-Choose **Pixel Art** when adjusting palette, resolution, outline, or other pixel settings while reusing an earlier capture.
-
-## Basic bake workflow
-
-1. Open **Smear Generator > Open Smear Generator**.
-2. Select **Full**.
-3. Assign the character model.
-4. Assign the animation clip.
-5. Set the target FPS.
-6. Expand the pixel and smear parameter sections as needed.
-7. Select **Preview animation** to check pose, framing, ground position, and textures.
-8. Select **Run pipeline**.
-9. Review the input, smear, and pixel-art frames.
-10. Open **Results** to locate the generated prefab or export the folder.
-
-Generated assets remain inside the current Unity project until **Export Folder** is selected.
-
-## 2. FBX Avatar Setup
-
-Use **Smear Generator > FBX Avatar Setup** when a character and clip come from different humanoid FBX files.
-
-A common example is:
-
-```text
-Character FBX: James_Base.fbx
-Animation FBX: Mixamo_XBot_SpinKick.fbx
-```
-
-Both FBXs must have valid humanoid avatars for Unity to retarget the animation. The setup tool prepares and validates the pair before preview or bake.
-
-Use it when:
-
-- the animation plays on its source model but not the selected character;
-- preview reports that the character has no valid humanoid avatar;
-- a generic clip has no transform paths matching the character; or
-- the character pose is distorted after assigning a clip from another model.
-
-After setup, return to the main window, reassign the character and clip if needed, then preview again.
-
-## 3. FBX Texture Fixer
-
-Use **Smear Generator > FBX Texture Fixer** when a model imports as white or its textures are absent.
-
-Some FBX files embed PNG data but Unity does not create or reconnect the expected texture files. The fixer extracts those PNGs into an `.fbm` folder beside the FBX and refreshes the importer.
-
-Workflow:
-
-1. Open **FBX Texture Fixer**.
-2. Assign the affected FBX.
-3. Check the proposed folder name and destination.
-4. Select **Fix Texture**.
-5. Reopen or reimport the model if Unity has not refreshed its preview.
-6. Preview the animation in the main window.
-
-This tool repairs FBX texture extraction. It does not pixelize a model or import generated sprite animation.
-
-## 4. Import Exported Pixel Art Animation
-
-**Import Exported Pixel Art Animation only accepts pixel-art animation output from Smear Generator.** It does not import high-resolution capture output, an FBX, or a normal Unity animation clip.
-
-### Why the importer exists
-
-A generated package contains Unity `.anim`, `.controller`, and `.prefab` files. Those assets refer to the original project's sprite and animation GUIDs. Copying them into another project's `Assets` folder without their original metadata can leave the prefab with missing sprites or a disconnected animation.
-
-The portable folder's stable contract is its PNG and JSON data. The importer reads that data and creates new Unity assets with references belonging to the destination project.
-
-### Source project
-
-After a successful Full or Pixel Art run:
-
-1. Open **Results**.
-2. Select **Export Folder**.
-3. Choose a folder outside the Unity project.
-4. Copy that exported folder to the other device or project.
-
-An exported folder contains files similar to:
-
-```text
-walk/
-├── walk.png
-├── animation.json
-├── package.json
-├── walk_2d.anim
-├── walk_2d.controller
-└── walk_2d.prefab
-```
-
-### Destination project
-
-1. Install this generator package.
-2. Choose **Smear Generator > Utilities > Import Exported Pixel Art Animation**.
-3. Select the exported folder containing `package.json` and `animation.json`.
-4. Unity rebuilds the sprite sheet, clip, controller, and prefab.
-5. Use the rebuilt prefab from:
-
-```text
-Assets/SmearGenerator.Generated/ImportedPackages/<package-name>/
-```
-
-The importer uses the PNG and JSON as the source of truth. Do not drag the copied prefab directly into `Assets` when its sprite references are missing.
-
-## Exported prefab usage
-
-Drag the generated or imported `_2d.prefab` into a scene. The prefab contains:
-
-- a `SpriteRenderer` with the first generated frame;
-- an `Animator` with the generated controller; and
-- an animation clip whose sprite keys follow the exported frame timing.
-
-The generated controller starts in the generated animation state. Looping follows the metadata written during export.
+---
 
 ## Configuration
 
-The main window exposes configuration across three foldout sections.
+### Pixel settings
 
-### Pixel parameters
-
-| Control | Effect |
+| Control | What it does |
 |---|---|
-| **Output resolution** | Final pixel-art frame size in pixels. 64 is a good starting point for most characters. |
-| **Capture resolution** | Internal 3D render size before downscaling. Higher values preserve more detail but bake slower. |
-| **Palette size** | Max color count when auto palette generation is used. Ignored when a palette LUT is assigned. |
-| **Outline** | Draws a solid silhouette outline. Most pixel-art games use this for readability at small sizes. |
-| **Outline color** | Color of the silhouette outline. Dark desaturated colors blend better with most palettes. |
-| **Pixels per unit** | Unity units per sprite pixel. Match this to the target game's pixel density. |
-| **Loop playback** | Whether the generated animation clip loops. Disable for one-shot actions like attacks. |
-| **Pivot normalized** | Sprite anchor point in normalized coordinates. Bottom-center works for most characters. |
-| **Save high-res to disk** | Also writes the raw 3D capture PNG before pixelization. Useful for re-running just the pixel step later. |
+| Output resolution | Final pixel-art frame size. 64px is a good starting point. |
+| Capture resolution | Internal render size before downscaling. Higher = more detail, slower bake. |
+| Palette size | Max colors when auto-generating a palette. Ignored when a palette LUT is assigned. |
+| Outline | Draws a solid silhouette outline around the character. |
+| Outline color | Color of that outline. Dark desaturated colors blend with most palettes. |
+| Pixels per unit | Unity units per pixel. Match this to your game's pixel density. |
+| Loop playback | Whether the generated clip loops. Turn off for one-shot actions like attacks. |
+| Pivot normalized | Sprite anchor point. Bottom-center works for most characters. |
+| Save high-res to disk | Keep the raw 3D render so you can re-run just the pixel step later. |
 
 ### Post-process / palette
 
-| Control | Effect |
+| Control | What it does |
 |---|---|
-| **Post process config** | Optional asset that controls palette quantization, flicker suppression, and downscale quality. Leave empty to use built-in defaults. |
-| **Palette LUT** | Lock to a fixed artist palette. Every output pixel snaps to the nearest color here. Leave empty to let the pipeline generate a palette automatically from the animation frames. |
-| **Auto palette size** | Number of colors the palette generator picks when no fixed palette is set. |
-| **Edge refine passes** | How many times the downscaler sharpens edge kernels before sampling. Higher gives crisper outlines at the cost of bake time. 5 is the default. |
-| **Flicker suppress** | How much a pixel's color must change between frames before it updates. Higher values reduce inter-frame noise but can slow the appearance of genuine color transitions. |
-| **Reuse palette across frames** | Build the palette once from a seed frame and apply it to all frames. Keeps colors consistent across the animation and bakes faster. Disable to run full palette generation per frame. |
+| Post process config | Optional asset for palette quantization, flicker suppression, and downscale quality. Leave empty for defaults. |
+| Palette LUT | Lock output to a fixed artist palette. Leave empty to auto-generate. |
+| Edge refine passes | How many times the downscaler sharpens edges before sampling. Default 5. Higher = crisper outlines, slower bake. |
+| Flicker suppress | Minimum color change between frames before a pixel updates. Reduces inter-frame noise. |
+| Reuse palette across frames | Build the palette once from a seed frame, apply to all. Faster and more consistent. Disable to regenerate per frame. |
 
-### Smear controls
+### Smear settings
 
-| Control | Effect |
+| Control | What it does |
 |---|---|
-| **Target FPS** | Animation samples captured per second. Lower values produce fewer, choppier frames; higher values produce more frames and take more memory. |
-| **Playback speed** | Sampled animation speed. Faster playback increases measured motion and can trigger stronger smears. |
-| **Elongated** | Stretches moving geometry along its trajectory. Use it for fast limbs or whole-body movement. |
-| **Multiples** | Adds repeated silhouettes along the movement path. Use it when one stretched shape does not communicate the action well. |
-| **Motion lines** | Adds line geometry from the measured trajectory. Line length follows trajectory speed. |
-| **Smear strength and thresholds** | Control displacement size and the minimum motion needed before each smear type activates. Change one value at a time, then rebake. |
+| Target FPS | Samples captured per second. |
+| Playback speed | Sampling speed. Faster = stronger measured motion = stronger smears. |
+| Elongated | Stretches moving geometry along its path. Good for fast limbs. |
+| Multiples | Adds repeated silhouettes along the movement path. |
+| Motion lines | Adds line geometry from the trajectory. Length follows velocity. |
+| Smear strength / thresholds | Size of displacement and minimum motion before each type activates. Change one at a time, then rebake. |
 
-Use preview before a full run. Framing, retargeting, and missing material textures are easier to correct before the pipeline writes every frame.
+---
 
-The Results card shows **Rebake needed** after a parameter change. The old result stays available for comparison and export until the next bake replaces it.
+## Moving output to another project
 
-### Debug view
+**On the source project:**
 
-Enable **Velocity heatmap** after a bake to inspect measured motion in the 3D source pane. Blue marks slower regions and red marks faster regions. The heatmap does not alter the generated pixel art.
+1. After a successful bake, open **Results**.
+2. Click **Export Folder** and save somewhere outside the Unity project.
+3. Copy that folder to the destination machine.
 
+**On the destination project:**
+
+1. Install this package.
+2. Open **Smear Generator > Utilities > Import Exported Pixel Art Animation**.
+3. Select the exported folder.
+4. Use the rebuilt prefab from `Assets/SmearGenerator.Generated/ImportedPackages/<name>/`.
+
+The importer uses the PNG and JSON as the source of truth. Do not drag the `.prefab` directly into Assets — the sprite references will be missing.
+
+---
 
 ## Troubleshooting
 
-### Character is solid white
+**Character is solid white** — Open FBX Texture Fixer, fix the FBX, preview again.
 
-The source FBX materials probably have no albedo texture binding. Open **FBX Texture Fixer**, repair the selected FBX, and preview again.
+**Character or animation is distorted** — Open FBX Avatar Setup. Make sure both the character and clip FBX have valid humanoid avatars.
 
-### Character or animation is distorted
+**Imported prefab has missing sprites** — Delete the broken import and run the importer again from the exported folder. Do not copy the `.prefab` by itself.
 
-Open **FBX Avatar Setup** and prepare the character/clip pair as humanoid assets. Confirm that both FBXs report valid humanoid data.
+**Pixel Art mode has no input** — It needs a high-res PNG + JSON from a previous Smear Bake or Full run. Select those files first.
 
-### Imported prefab has missing sprites
+**Package update does not appear** — Manually update the git tag in `Packages/manifest.json` and commit both `manifest.json` and `packages-lock.json`.
 
-Delete the broken imported folder and run **Utilities > Import Exported Pixel Art Animation** again using the exported folder. Do not install the copied `.prefab` by itself.
+---
 
-### Pixel Art mode has no input
+## Package layout
 
-Pixel Art mode needs a matching high-resolution PNG and JSON produced by Smear Bake or Full mode. Select those files before running the pixel workflow.
-
-### Package update does not appear
-
-Change the Git tag in `Packages/manifest.json` when a newer release is available. Commit `Packages/manifest.json` and `Packages/packages-lock.json` together in the consuming project.
-
-## Development layout
-
-The repository root is the UPM package root:
-
-```text
-Editor/          editor windows, pipeline stages, import, and export
-Runtime/         components required by generated runtime assets
+```
+Editor/          windows, pipeline stages, import/export tools
+Runtime/         components used by generated prefabs
 Shaders/         capture, ghost, and motion-line shaders
-Tests/Editor/    package EditMode tests
-Documentation~/  package documentation
-package.json     UPM package manifest
+Tests/Editor/    EditMode tests
+Documentation~/  full documentation
+package.json     UPM manifest
 ```
 
-Package-generated files belong under `Assets/SmearGenerator.Generated/` in the consuming project, not inside the package repository.
-
-## More documentation
-
-- [Getting started](Documentation~/getting-started.md)
-- [Dependencies](Documentation~/dependencies.md)
+See [Dependencies](Documentation~/dependencies.md) for the full dependency list.
