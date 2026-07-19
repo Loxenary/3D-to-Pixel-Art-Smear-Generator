@@ -86,7 +86,10 @@ namespace SmearFramework.SmearGeneration
             float speed, float maxSpeed)
         {
             float delta = maxSpeed > 0.0001f ? Mathf.Clamp01(speed / maxSpeed) : 0f;
-            float lineLen = config.MotionLineMaxLength * delta;
+            // when threshold is 0 (show lines everywhere) give every seed a minimum visible length
+            // so slow-moving vertices are not silently discarded by the length cutoff below
+            float minDelta = config.MotionLineSpeedThreshold <= 0.0001f ? 0.15f : 0f;
+            float lineLen = config.MotionLineMaxLength * Mathf.Max(delta, minDelta);
             if (lineLen < 0.01f) return;
 
             int segments = Mathf.Max(2, Mathf.CeilToInt(lineLen * 4));
