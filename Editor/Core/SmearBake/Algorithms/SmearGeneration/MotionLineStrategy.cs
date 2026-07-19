@@ -85,11 +85,21 @@ namespace SmearFramework.SmearGeneration
             MotionData motion, TrajectoryData traj, PipelineConfig config,
             float speed, float maxSpeed)
         {
-            float delta = maxSpeed > 0.0001f ? Mathf.Clamp01(speed / maxSpeed) : 0f;
-            // when threshold is 0 (show lines everywhere) give every seed a minimum visible length
-            // so slow-moving vertices are not silently discarded by the length cutoff below
-            float minDelta = config.MotionLineSpeedThreshold <= 0.0001f ? 0.15f : 0f;
-            float lineLen = config.MotionLineMaxLength * Mathf.Max(delta, minDelta);
+            // threshold=0 means "show everywhere" -- all seeds get full-length lines
+            // threshold>0 means length scales by how far above the threshold this vertex is,
+            // not by how fast it is relative to the fastest bone
+            float delta;
+            float threshold = config.MotionLineSpeedThreshold;
+            if (threshold <= 0.0001f)
+            {
+                delta = 1f;
+            }
+            else
+            {
+                float range = maxSpeed - threshold;
+                delta = range > 0.0001f ? Mathf.Clamp01((speed - threshold) / range) : 1f;
+            }
+            float lineLen = config.MotionLineMaxLength * delta;
             if (lineLen < 0.01f) return;
 
             int segments = Mathf.Max(2, Mathf.CeilToInt(lineLen * 4));
