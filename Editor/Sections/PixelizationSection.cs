@@ -87,9 +87,6 @@ namespace SmearFramework.Editor
                     so.Update();
                     EditorGUI.BeginChangeCheck();
 
-                    EditorGUILayout.PropertyField(so.FindProperty("_paletteLUT"),
-                        new GUIContent("Fixed Palette",
-                            "Optional. Drop a texture where each pixel is one color in your palette. The output will snap every pixel to the closest color in this set. Leave empty to let the tool pick colors automatically."));
                     EditorGUILayout.PropertyField(so.FindProperty("_paletteSize"),
                         new GUIContent("Color Count",
                             "How many colors the output can use when no fixed palette is set. Lower = more limited and stylized. 8 is typical for retro pixel art, 16-32 for richer sprites."));
