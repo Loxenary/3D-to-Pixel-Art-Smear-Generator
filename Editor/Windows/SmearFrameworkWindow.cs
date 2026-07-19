@@ -37,8 +37,6 @@ namespace SmearFramework.Editor
         private bool _showVelocityDetails;
         private UnityEditor.Editor _smearEditor;
         private UnityEditor.Editor _smearOutputEditor;
-        private UnityEditor.Editor _outputEditor;
-        private UnityEditor.Editor _postProcessEditor;
         private UnityEditor.Editor _velocityEditor;
 
         private Texture2D[] _smearFrames;
@@ -620,11 +618,11 @@ namespace SmearFramework.Editor
             if (HasResultsPanel() && _state.ResultsStale)
                 EditorGUILayout.HelpBox("Rebake needed -- pixel settings changed.", MessageType.Warning);
             _pixelizationSection.Draw(
-                _outputConfig, ref _outputEditor,
-                _postProcessConfig, ref _postProcessEditor,
+                _outputConfig, _postProcessConfig,
                 ref _reusePaletteAcrossFrames,
                 _layoutSection, ref _showPivotLine, HandleConfigChanged);
-            EndSectionCard();
+            _outputConfig      = _pixelizationSection.CurrentOutputConfig;
+            _postProcessConfig = _pixelizationSection.CurrentPostProcessConfig;
         }
 
         // Draw nested config inspectors in narrow mode without forcing a wide horizontal layout.
@@ -703,6 +701,9 @@ namespace SmearFramework.Editor
             if (_outputConfig == null)
                 _outputConfig = AssetDatabase.LoadAssetAtPath<OutputConfig>(
                     SmearFrameworkPaths.DefaultData + "/Output/OutputConfig_Default.asset");
+            if (_postProcessConfig == null)
+                _postProcessConfig = AssetDatabase.LoadAssetAtPath<PostProcessConfig>(
+                    SmearFrameworkPaths.DefaultData + "/PostProcess/PostProcessConfig_Default.asset");
         }
 
         void HandleSplitterDrag()
