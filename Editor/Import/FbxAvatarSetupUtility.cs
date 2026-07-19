@@ -137,6 +137,9 @@ namespace SmearFramework.Editor
                 || !HasValidHumanoidAvatar(assetPath);
         }
 
+        // Public accessor for UI windows to check avatar state without reimporting.
+        public static bool HasValidHumanoidAvatarPublic(string assetPath) => HasValidHumanoidAvatar(assetPath);
+
         // Check whether the FBX prefab exposes a valid humanoid avatar.
         static bool HasValidHumanoidAvatar(string assetPath)
         {
