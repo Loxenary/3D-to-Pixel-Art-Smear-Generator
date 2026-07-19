@@ -73,7 +73,7 @@ namespace SmearFramework.Editor
             EditorGUI.BeginChangeCheck();
             _postProcessConfig = DrawObjectField(
                 new GUIContent("Post-process / palette",
-                    "Controls palette quantization, flicker suppression, and content-adaptive downscale."),
+                    "Fine-tune how colors and edges look in the final pixel art."),
                 _postProcessConfig);
             if (EditorGUI.EndChangeCheck())
                 changed = true;
@@ -88,17 +88,17 @@ namespace SmearFramework.Editor
                     EditorGUI.BeginChangeCheck();
 
                     EditorGUILayout.PropertyField(so.FindProperty("_paletteLUT"),
-                        new GUIContent("Palette LUT",
-                            "Lock to a fixed artist palette. Each output pixel snaps to the nearest color here. Leave empty to let IOKM generate the palette automatically."));
+                        new GUIContent("Fixed Palette",
+                            "Optional. Drop a texture where each pixel is one color in your palette. The output will snap every pixel to the closest color in this set. Leave empty to let the tool pick colors automatically."));
                     EditorGUILayout.PropertyField(so.FindProperty("_paletteSize"),
-                        new GUIContent("Auto palette size",
-                            "Number of colors IOKM generates when no fixed palette is set. Ignored if Palette LUT is non-empty."));
+                        new GUIContent("Color Count",
+                            "How many colors the output can use when no fixed palette is set. Lower = more limited and stylized. 8 is typical for retro pixel art, 16-32 for richer sprites."));
                     EditorGUILayout.PropertyField(so.FindProperty("_emIterations"),
-                        new GUIContent("Edge refine passes",
-                            "How many times the downscaler sharpens edge kernels before sampling. Higher = crisper outlines, slower bake."));
+                        new GUIContent("Edge Sharpness",
+                            "How many passes the pixelizer runs to sharpen color boundaries before finalizing each frame. Higher = crisper outlines, slower bake. 5 is a safe default for most characters."));
                     EditorGUILayout.PropertyField(so.FindProperty("_flickerSuppressOnDistance"),
-                        new GUIContent("Flicker suppress",
-                            "CIELAB distance a pixel must change before it updates between frames. Higher = more suppression, fewer updates."));
+                        new GUIContent("Flicker Reduction",
+                            "Prevents pixels from switching colors between frames when the change is too small to notice. Raise this if individual pixels flicker on and off. Set to 0 to disable."));
 
                     changed |= EditorGUI.EndChangeCheck();
                     so.ApplyModifiedProperties();
@@ -107,7 +107,7 @@ namespace SmearFramework.Editor
                     EditorGUI.BeginChangeCheck();
                     reusePalette = EditorGUILayout.ToggleLeft(
                         new GUIContent("Reuse palette across frames",
-                            "Build the IOKM palette once from a seed frame, then LUT-snap all other frames. Faster and more color-consistent. Disable to run full quantization per frame."),
+                            "When on, colors are chosen once from a sample frame and applied to every frame. Keeps the palette consistent and bakes faster. Turn off only if colors look wrong on specific frames."),
                         reusePalette);
                     changed |= EditorGUI.EndChangeCheck();
                 }
