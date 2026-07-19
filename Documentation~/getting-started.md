@@ -25,19 +25,19 @@ Replace the example with the absolute path to the standalone `3D-to-Pixel-Art-Sm
 
 ## Install from GitHub
 
-After a release is tagged, select **Add package from git URL** in Package Manager and enter:
+Select **Add package from git URL** in Package Manager and enter:
 
 ```text
-https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator.git#v0.2.2
+https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator.git#release
 ```
 
 The same dependency can be written directly in the target project's `Packages/manifest.json`:
 
 ```json
-"com.davis.smear-generator": "https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator.git#v0.2.2"
+"com.davis.smear-generator": "https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator.git#release"
 ```
 
-To update, replace the old tag with the new release tag. Commit the resulting `manifest.json` and `packages-lock.json` changes together.
+This tracks the `release` branch. The Package Manager **Update** button will appear when a new version is published. To pin to a specific version instead, use a tag like `#v0.2.3` in place of `#release`.
 
 ## Open the tool
 
