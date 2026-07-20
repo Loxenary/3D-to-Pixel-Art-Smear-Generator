@@ -23,7 +23,7 @@
 
 **Smear frames** are those stretched distortions you see on fast attacks in 2D fighting games — normally drawn by hand for every move. This generates them automatically from the 3D mesh.
 
-For a full walkthrough, watch the tutorial: **[ video link ]**
+![tutorial](.github/tutorial.mp4)
 
 ---
 
