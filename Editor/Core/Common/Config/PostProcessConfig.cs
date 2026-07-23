@@ -7,8 +7,8 @@ namespace SmearFramework
     {
         // measured in CIELAB space so perceptually uniform
         [FormerlySerializedAs("_flickerThreshold")]
-        [Tooltip("How much a pixel must change color (CIELAB distance) before it updates between frames.\n1 = very locked, barely any updates (may miss real motion changes)\n5 = balanced suppression (recommended)\n12 = loose, colors update freely but flicker is visible")]
-        [SerializeField, Range(1f, 15f)] private float _flickerSuppressOnDistance = 5f;
+        [Tooltip("How much a pixel must change color (CIELAB distance) before it updates between frames. Matches the Pixel Noise Suppression dropdown.\n0 = off (default; the locked color set already keeps most pixels stable)\n12 = low suppression\n35 = high\n70 = max, pixels only update on strong color changes")]
+        [SerializeField, Range(0f, 70f)] private float _flickerSuppressOnDistance = 0f;
 
         [Header("Pixelization")]
         [FormerlySerializedAs("_pixelWidth")]
