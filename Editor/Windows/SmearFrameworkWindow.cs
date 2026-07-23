@@ -307,6 +307,8 @@ namespace SmearFramework.Editor
                     if (_needsFullBake) DoBake();
                     else DoQuickRebake();
                 }
+                _autoRebake = EditorGUILayout.ToggleLeft(
+                    new GUIContent("Auto re-bake on change", "Re-runs after parameter edits when a valid cache already exists."), _autoRebake);
             }
             else
             {
@@ -744,7 +746,7 @@ namespace SmearFramework.Editor
             _cleanFrames = (showPixelLeft && hasPixelLeft)
                 ? _cleanPixelFrames
                 : (has3DLeft ? _clean3DFrames : _cleanPixelFrames);
-            bool canHeatmap = _cachedMotion != null && _lastCaptureFrame != null && !showPixelLeft;
+            bool canHeatmap = _cachedMotion != null && _lastCaptureFrame != null;
 
             _previewSection.DrawPaneHeaders(allowLeftToggle, has3DLeft, hasPixelLeft, smearMode, pixelMode);
 
@@ -893,7 +895,9 @@ namespace SmearFramework.Editor
                 _cleanPixelFrames = null;
                 if (userWantsSmear)
                 {
-                    _clean3DFrames = BakeWithCache(useSmear: false, includePixelOutput: false, out _, out _);
+                    _clean3DFrames = BakeWithCache(useSmear: false, includePixelOutput: false, out _, out var cleanCtx);
+                    if (_lastCaptureFrame == null && cleanCtx.Has("capture_frame"))
+                        _lastCaptureFrame = cleanCtx.Get<CaptureFrame>("capture_frame");
                     if (HasPixelizationStage())
                         _cleanPixelFrames = BakeWithCache(useSmear: false, includePixelOutput: true, out _, out _);
                     _cleanFrames = _clean3DFrames ?? _cleanPixelFrames;
