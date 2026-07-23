@@ -37,8 +37,6 @@ namespace SmearFramework.Editor
         private bool _showVelocityDetails;
         private UnityEditor.Editor _smearEditor;
         private UnityEditor.Editor _smearOutputEditor;
-        private UnityEditor.Editor _outputEditor;
-        private UnityEditor.Editor _postProcessEditor;
         private UnityEditor.Editor _velocityEditor;
 
         private Texture2D[] _smearFrames;
@@ -309,6 +307,8 @@ namespace SmearFramework.Editor
                     if (_needsFullBake) DoBake();
                     else DoQuickRebake();
                 }
+                _autoRebake = EditorGUILayout.ToggleLeft(
+                    new GUIContent("Auto re-bake on change", "Re-runs after parameter edits when a valid cache already exists."), _autoRebake);
             }
             else
             {
@@ -619,11 +619,15 @@ namespace SmearFramework.Editor
             BeginSectionCard("Pixelization", PixelTint);
             if (HasResultsPanel() && _state.ResultsStale)
                 EditorGUILayout.HelpBox("Rebake needed -- pixel settings changed.", MessageType.Warning);
+            string configProblem = BuildConfigProblem();
+            if (!string.IsNullOrEmpty(configProblem))
+                EditorGUILayout.HelpBox(configProblem, MessageType.Warning);
             _pixelizationSection.Draw(
-                _outputConfig, ref _outputEditor,
-                _postProcessConfig, ref _postProcessEditor,
+                _outputConfig, _postProcessConfig,
                 ref _reusePaletteAcrossFrames,
                 _layoutSection, ref _showPivotLine, HandleConfigChanged);
+            _outputConfig      = _pixelizationSection.CurrentOutputConfig;
+            _postProcessConfig = _pixelizationSection.CurrentPostProcessConfig;
             EndSectionCard();
         }
 
@@ -703,6 +707,9 @@ namespace SmearFramework.Editor
             if (_outputConfig == null)
                 _outputConfig = AssetDatabase.LoadAssetAtPath<OutputConfig>(
                     SmearFrameworkPaths.DefaultData + "/Output/OutputConfig_Default.asset");
+            if (_postProcessConfig == null)
+                _postProcessConfig = AssetDatabase.LoadAssetAtPath<PostProcessConfig>(
+                    SmearFrameworkPaths.DefaultData + "/PostProcess/PostProcessConfig_Default.asset");
         }
 
         void HandleSplitterDrag()
@@ -739,7 +746,7 @@ namespace SmearFramework.Editor
             _cleanFrames = (showPixelLeft && hasPixelLeft)
                 ? _cleanPixelFrames
                 : (has3DLeft ? _clean3DFrames : _cleanPixelFrames);
-            bool canHeatmap = _cachedMotion != null && _lastCaptureFrame != null && !showPixelLeft;
+            bool canHeatmap = _cachedMotion != null && _lastCaptureFrame != null;
 
             _previewSection.DrawPaneHeaders(allowLeftToggle, has3DLeft, hasPixelLeft, smearMode, pixelMode);
 
@@ -888,7 +895,9 @@ namespace SmearFramework.Editor
                 _cleanPixelFrames = null;
                 if (userWantsSmear)
                 {
-                    _clean3DFrames = BakeWithCache(useSmear: false, includePixelOutput: false, out _, out _);
+                    _clean3DFrames = BakeWithCache(useSmear: false, includePixelOutput: false, out _, out var cleanCtx);
+                    if (_lastCaptureFrame == null && cleanCtx.Has("capture_frame"))
+                        _lastCaptureFrame = cleanCtx.Get<CaptureFrame>("capture_frame");
                     if (HasPixelizationStage())
                         _cleanPixelFrames = BakeWithCache(useSmear: false, includePixelOutput: true, out _, out _);
                     _cleanFrames = _clean3DFrames ?? _cleanPixelFrames;
@@ -1466,7 +1475,7 @@ namespace SmearFramework.Editor
             float presetWidth = Mathf.Ceil(EditorStyles.miniButton.CalcSize(new GUIContent("Top-down RPG ▾")).x);
             float desiredWidth = Mathf.Max(presetWidth + 62f, 222f);
             float width = Mathf.Min(desiredWidth, Mathf.Max(180f, viewport.width - 16f));
-            float extraHeight = _cameraAngleDirty && CanRunCurrentMode() ? 34f : 0f;
+            float extraHeight = _cameraAngleDirty && HasValidLiveInput() ? 34f : 0f;
             return new Rect(viewport.x + 8f, viewport.yMax - 98f - extraHeight, width, 90f + extraHeight);
         }
 
@@ -1481,7 +1490,7 @@ namespace SmearFramework.Editor
             const float rollButtonWidth = 42f;
 
             float yOff = 0f;
-            if (_cameraAngleDirty && CanRunCurrentMode())
+            if (_cameraAngleDirty && HasValidLiveInput())
             {
                 var oldBg = GUI.backgroundColor;
                 GUI.backgroundColor = new Color(0.85f, 0.55f, 0.15f);
@@ -1600,16 +1609,18 @@ namespace SmearFramework.Editor
         // Stashes and restores the smear results so the baked animation is not wiped.
         void DoPreviewCameraAngle()
         {
-            var savedSmear      = _smearFrames;
-            var savedIntensity  = _perFrameIntensity;
-            int savedSmearCount = _smearFrameCount;
-            float savedMaxInt   = _maxIntensity;
-            int savedFrame      = _frame;
-            bool savedPlaying   = _playing;
+            var savedSmear        = _smearFrames;
+            var savedCleanPixel   = _cleanPixelFrames;
+            var savedIntensity    = _perFrameIntensity;
+            int savedSmearCount   = _smearFrameCount;
+            float savedMaxInt     = _maxIntensity;
+            int savedFrame        = _frame;
+            bool savedPlaying     = _playing;
 
             DoPreviewAnimation();
 
             _smearFrames       = savedSmear;
+            _cleanPixelFrames  = savedCleanPixel;  // restore so 3D/Pixel toggle stays intact
             _perFrameIntensity = savedIntensity;
             _smearFrameCount   = savedSmearCount;
             _maxIntensity      = savedMaxInt;
@@ -1830,17 +1841,35 @@ namespace SmearFramework.Editor
         // Smear workflows always require live character and clip input; pixel-only runs may use a loaded sheet.
         bool CanRunCurrentMode()
         {
+            if (!string.IsNullOrEmpty(BuildConfigProblem()))
+                return false;
             if (HasSmearStage())
                 return HasValidLiveInput();
             return HasValidLiveInput() || _state.HasHighResSource;
         }
 
-        // Explains the exact missing input for the selected workflow.
+        // Explains the exact missing input or config for the selected workflow.
         string BuildRunRequirementMessage()
         {
+            string configProblem = BuildConfigProblem();
+            if (!string.IsNullOrEmpty(configProblem))
+                return configProblem;
             return HasSmearStage()
                 ? "Drop a character + animation clip to run this smear workflow."
                 : "Drop a character + animation clip, or load a high-res sheet.";
+        }
+
+        // Returns a message when a required config is missing for the active stage set.
+        string BuildConfigProblem()
+        {
+            if (HasPixelizationStage())
+            {
+                if (_outputConfig == null)
+                    return "Pixelization config is missing -- assign one in the Pixelization section.";
+                if (_postProcessConfig == null)
+                    return "Post-process config is missing -- assign one in the Pixelization section.";
+            }
+            return null;
         }
 
         // any stage consumes frames_highres before any earlier stage produces it?

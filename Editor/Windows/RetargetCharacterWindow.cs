@@ -6,8 +6,8 @@ namespace SmearFramework.Editor
     // Prepares a character + clip FBX pair for Mecanim humanoid retargeting.
     public class RetargetCharacterWindow : EditorWindow
     {
-        [SerializeField] private GameObject _characterInput;
-        [SerializeField] private GameObject _clipInput;
+        [SerializeField] private string _characterPath;
+        [SerializeField] private string _clipPath;
         private string _status;
         private bool _statusIsError;
 
@@ -18,39 +18,49 @@ namespace SmearFramework.Editor
         public static void OpenWith(GameObject characterPrefill)
         {
             var window = GetWindow<RetargetCharacterWindow>("Retarget Character");
-            window.minSize = new Vector2(380, 220);
+            window.minSize = new Vector2(400, 280);
             if (characterPrefill != null)
-                window._characterInput = characterPrefill;
+            {
+                string path = AssetDatabase.GetAssetPath(characterPrefill);
+                if (path.EndsWith(".fbx", System.StringComparison.OrdinalIgnoreCase))
+                    window._characterPath = path;
+            }
         }
 
         void OnGUI()
         {
             EditorGUILayout.Space(8);
             EditorGUILayout.LabelField("Retarget Character", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField("Use this when your animation clip comes from a different skeleton than your character. Drop the raw .fbx files -- not prefabs -- into both fields below.", EditorStyles.wordWrappedMiniLabel);
+            EditorGUILayout.LabelField(
+                "Use this when your animation clip comes from a different skeleton than your character. " +
+                "Both files must be raw .fbx assets inside your project.",
+                EditorStyles.wordWrappedMiniLabel);
             EditorGUILayout.Space(10);
 
-            string characterPath = DrawFbxField("Character FBX", ref _characterInput,
-                "The character you want to animate.");
-            EditorGUILayout.Space(6);
-            string clipPath = DrawFbxField("Clip FBX", ref _clipInput,
-                "The FBX that carries the animation clip. Can be from a different skeleton.");
+            EditorGUI.BeginChangeCheck();
+            _characterPath = FbxDropField.Draw("Character FBX", _characterPath);
+            if (EditorGUI.EndChangeCheck()) _status = null;
 
+            DrawFbxStatus(_characterPath);
+            EditorGUILayout.Space(8);
+
+            EditorGUI.BeginChangeCheck();
+            _clipPath = FbxDropField.Draw("Clip FBX", _clipPath);
+            if (EditorGUI.EndChangeCheck()) _status = null;
+
+            DrawFbxStatus(_clipPath);
             EditorGUILayout.Space(10);
 
-            bool ready = !string.IsNullOrEmpty(characterPath) && !string.IsNullOrEmpty(clipPath);
-            if (!ready)
-            {
-                string hint = BuildReadyHint(characterPath, clipPath);
-                if (!string.IsNullOrEmpty(hint))
-                    EditorGUILayout.HelpBox(hint, MessageType.Info);
-            }
+            string readyHint = BuildReadyHint();
+            if (!string.IsNullOrEmpty(readyHint))
+                EditorGUILayout.HelpBox(readyHint, MessageType.Info);
 
+            bool ready = !string.IsNullOrEmpty(_characterPath) && !string.IsNullOrEmpty(_clipPath);
             EditorGUI.BeginDisabledGroup(!ready);
             if (GUILayout.Button(new GUIContent("Prepare Retarget Pair",
                 "Sets both FBX files to humanoid rig mode so Unity's Mecanim system can retarget the clip onto the character."),
                 GUILayout.Height(32)))
-                Apply(characterPath, clipPath);
+                Apply();
             EditorGUI.EndDisabledGroup();
 
             if (!string.IsNullOrEmpty(_status))
@@ -60,44 +70,30 @@ namespace SmearFramework.Editor
             }
         }
 
-        // Draw an FBX object field with inline per-field status. Returns the resolved asset path or null.
-        string DrawFbxField(string label, ref GameObject field, string tooltip)
+        // Show per-field rig status for a valid FBX path.
+        static void DrawFbxStatus(string path)
         {
-            EditorGUILayout.LabelField(new GUIContent(label, tooltip), EditorStyles.miniLabel);
-            field = (GameObject)EditorGUILayout.ObjectField(field, typeof(GameObject), false);
-
-            if (field == null)
-                return null;
-
-            string path = FbxAvatarSetupUtility.ResolveFbxAssetPath(field);
-            if (string.IsNullOrEmpty(path))
-            {
-                EditorGUILayout.HelpBox($"\"{field.name}\" is not a raw .fbx file. Select the .fbx from your Project panel, not a prefab or generated asset.", MessageType.Warning);
-                return null;
-            }
-
+            if (string.IsNullOrEmpty(path)) return;
             string status = FbxAvatarSetupUtility.DescribeForUser(path);
             if (!string.IsNullOrEmpty(status))
                 EditorGUILayout.HelpBox(status, MessageType.None);
-
-            return path;
         }
 
         // Explain what's still missing when the button is disabled.
-        static string BuildReadyHint(string characterPath, string clipPath)
+        string BuildReadyHint()
         {
-            bool charOk = !string.IsNullOrEmpty(characterPath);
-            bool clipOk  = !string.IsNullOrEmpty(clipPath);
-            if (!charOk && !clipOk) return null; // both empty -- field hints are enough
-            if (!charOk) return "Drop a raw .fbx into Character FBX to continue.";
-            if (!clipOk) return "Drop a raw .fbx into Clip FBX to continue.";
-            return null;
+            bool charOk = !string.IsNullOrEmpty(_characterPath);
+            bool clipOk  = !string.IsNullOrEmpty(_clipPath);
+            if (charOk && clipOk) return null;
+            if (!charOk && !clipOk) return null; // drop zone hints are enough
+            if (!charOk) return "Drop a Character FBX to continue.";
+            return "Drop a Clip FBX to continue.";
         }
 
         // Reimport both FBX assets so Mecanim can retarget the clip onto the character.
-        void Apply(string characterPath, string clipPath)
+        void Apply()
         {
-            var result = FbxAvatarSetupUtility.PrepareHumanoidRetargetPair(characterPath, clipPath);
+            var result = FbxAvatarSetupUtility.PrepareHumanoidRetargetPair(_characterPath, _clipPath);
             _status = result.Message;
             _statusIsError = !result.Success;
             if (result.Success)

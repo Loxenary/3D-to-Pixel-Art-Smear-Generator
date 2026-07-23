@@ -66,15 +66,19 @@ namespace SmearFramework.SmearGeneration
             return seeds;
         }
 
+        // Derive per-vertex speed from the bone linearVelocity already computed during extraction,
+        // propagated through skinning weights -- same source the velocity heatmap uses.
         private float[] ComputeVertexSpeeds(MotionData motion, int frame)
         {
-            int prev = Mathf.Max(frame - 1, 0);
-            var speeds = new float[motion.VertexCount];
+            var speeds  = new float[motion.VertexCount];
+            var weights = motion.PropagatedWeights;
+            if (weights == null) return speeds;
             for (int v = 0; v < motion.VertexCount; v++)
             {
-                speeds[v] = Vector3.Distance(
-                    motion.Vertices[frame][v].position,
-                    motion.Vertices[prev][v].position) * motion.Fps;
+                float speed = 0f;
+                for (int b = 0; b < motion.BoneCount; b++)
+                    speed += weights[v][b] * motion.Bones[frame][b].linearVelocity.magnitude;
+                speeds[v] = speed;
             }
             return speeds;
         }
@@ -85,7 +89,20 @@ namespace SmearFramework.SmearGeneration
             MotionData motion, TrajectoryData traj, PipelineConfig config,
             float speed, float maxSpeed)
         {
-            float delta = maxSpeed > 0.0001f ? Mathf.Clamp01(speed / maxSpeed) : 0f;
+            // threshold=0 means "show everywhere" -- all seeds get full-length lines
+            // threshold>0 means length scales by how far above the threshold this vertex is,
+            // not by how fast it is relative to the fastest bone
+            float delta;
+            float threshold = config.MotionLineSpeedThreshold;
+            if (threshold <= 0.0001f)
+            {
+                delta = 1f;
+            }
+            else
+            {
+                float range = maxSpeed - threshold;
+                delta = range > 0.0001f ? Mathf.Clamp01((speed - threshold) / range) : 1f;
+            }
             float lineLen = config.MotionLineMaxLength * delta;
             if (lineLen < 0.01f) return;
 

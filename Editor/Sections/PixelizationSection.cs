@@ -3,111 +3,139 @@ using UnityEngine;
 
 namespace SmearFramework.Editor
 {
-    // Draws pixelization/output parameter UI.
+    // Draws pixelization and post-process config controls for the left panel.
     internal sealed class PixelizationSection
     {
+        private OutputConfig _outputConfig;
+        private PostProcessConfig _postProcessConfig;
         private bool _showOutputDetails;
         private bool _showPostProcessDetails;
 
-        // Draws pixel-art conversion controls and output naming controls, but does not run the pipeline.
+        static readonly float[] PixelNoiseLevels  = { 0f, 12f, 35f, 70f };
+        static readonly string[] PixelNoiseLabels = { "No Suppression", "Low", "High", "Max" };
+
+        // Map a raw float to the nearest dropdown index.
+        static int FloatToNoiseLevel(float v)
+        {
+            if (v <= 0f)  return 0;
+            if (v < 20f)  return 1;
+            if (v < 50f)  return 2;
+            return 3;
+        }
+
+        public OutputConfig CurrentOutputConfig       => _outputConfig;
+        public PostProcessConfig CurrentPostProcessConfig => _postProcessConfig;
+
+        // Draws the pixelization and post-process config UI and reports changes through onChanged.
         public void Draw(
             OutputConfig outputConfig,
-            ref UnityEditor.Editor outputEditor,
             PostProcessConfig postProcessConfig,
-            ref UnityEditor.Editor postProcessEditor,
             ref bool reusePalette,
             LayoutSection layout,
             ref bool showPivotLine,
             System.Action onChanged)
         {
-            bool changed = false;
+            _outputConfig       = outputConfig;
+            _postProcessConfig  = postProcessConfig;
 
-            // -- output config section (resolution, outline, pivot, etc.)
-            if (outputConfig == null)
-            {
-                EditorGUILayout.HelpBox("Pixel parameters unavailable -- default config asset is missing.", MessageType.Warning);
-            }
-            else
+            bool changed = false;
+            bool narrow  = EditorGUIUtility.currentViewWidth < 600f;
+
+            // -- pixelization config
+            EditorGUI.BeginChangeCheck();
+            _outputConfig = DrawObjectField(
+                new GUIContent("Pixelization",
+                    "Controls output resolution, capture resolution, palette size, pivot, outline, and sprite sheet settings."),
+                _outputConfig);
+            if (EditorGUI.EndChangeCheck())
+                changed = true;
+
+            if (_outputConfig != null)
             {
                 _showOutputDetails = EditorGUILayout.Foldout(_showOutputDetails, "Pixel parameters");
                 if (_showOutputDetails)
                 {
-                    bool narrow = EditorGUIUtility.currentViewWidth < 600f;
-                    var so = new SerializedObject(outputConfig);
+                    var so = new SerializedObject(_outputConfig);
                     so.Update();
-
-                    var enableOutline = so.FindProperty("_enableOutline");
-                    var pivotNormalized = so.FindProperty("_pivotNormalized");
-
                     EditorGUI.BeginChangeCheck();
+
                     EditorGUILayout.PropertyField(so.FindProperty("_outputResolution"));
                     EditorGUILayout.PropertyField(so.FindProperty("_captureResolution"));
                     EditorGUILayout.PropertyField(so.FindProperty("_paletteSize"));
+
+                    var enableOutline = so.FindProperty("_enableOutline");
                     EditorGUILayout.PropertyField(enableOutline);
                     if (enableOutline.boolValue)
                         EditorGUILayout.PropertyField(so.FindProperty("_outlineColor"));
+
                     EditorGUILayout.PropertyField(so.FindProperty("_pixelsPerUnit"));
                     EditorGUILayout.PropertyField(so.FindProperty("_loopPlayback"));
-                    DrawPivotNormalizedProperty(pivotNormalized, narrow);
+                    DrawPivotNormalizedProperty(so.FindProperty("_pivotNormalized"), narrow);
                     showPivotLine = EditorGUILayout.ToggleLeft("Show Pivot Line", showPivotLine);
                     EditorGUILayout.PropertyField(so.FindProperty("_saveHighResToDisk"));
-                    changed |= EditorGUI.EndChangeCheck();
 
+                    changed |= EditorGUI.EndChangeCheck();
                     so.ApplyModifiedProperties();
                 }
             }
 
-            // -- post-process config section (palette LUT, flicker, EM iterations, etc.)
             layout.DrawGroupGap();
-            _showPostProcessDetails = EditorGUILayout.Foldout(_showPostProcessDetails, "Post-process / palette");
-            if (_showPostProcessDetails)
+
+            // -- post-process config
+            EditorGUI.BeginChangeCheck();
+            _postProcessConfig = DrawObjectField(
+                new GUIContent("Post-process / palette",
+                    "Fine-tune how colors and edges look in the final pixel art."),
+                _postProcessConfig);
+            if (EditorGUI.EndChangeCheck())
+                changed = true;
+
+            if (_postProcessConfig != null)
             {
-                EditorGUI.BeginChangeCheck();
-                var prev = postProcessConfig;
-                postProcessConfig = (PostProcessConfig)EditorGUILayout.ObjectField(
-                    new GUIContent("Post process config",
-                        "Controls palette quantization, flicker suppression, and content-adaptive downscale. Leave empty to use built-in defaults."),
-                    postProcessConfig, typeof(PostProcessConfig), false);
-                if (EditorGUI.EndChangeCheck())
+                _showPostProcessDetails = EditorGUILayout.Foldout(_showPostProcessDetails, "Post-process parameters");
+                if (_showPostProcessDetails)
                 {
-                    if (postProcessConfig != prev)
-                        postProcessEditor = null;
-                    changed = true;
-                }
-
-                if (postProcessConfig != null)
-                {
-                    var so = new SerializedObject(postProcessConfig);
+                    var so = new SerializedObject(_postProcessConfig);
                     so.Update();
-
                     EditorGUI.BeginChangeCheck();
-                    EditorGUILayout.PropertyField(so.FindProperty("_paletteLUT"),
-                        new GUIContent("Palette LUT",
-                            "Lock to a fixed artist palette. Each output pixel snaps to the nearest color here. Leave empty to let IOKM generate the palette automatically."));
+
                     EditorGUILayout.PropertyField(so.FindProperty("_paletteSize"),
-                        new GUIContent("Auto palette size",
-                            "Number of colors IOKM generates when no fixed palette is set. Ignored if Palette LUT is non-empty."));
+                        new GUIContent("Color Count",
+                            "How many colors the output can use when no fixed palette is set. Lower = more limited and stylized. 8 is typical for retro pixel art, 16-32 for richer sprites."));
                     EditorGUILayout.PropertyField(so.FindProperty("_emIterations"),
-                        new GUIContent("Edge refine passes",
-                            "How many times the downscaler sharpens edge kernels before sampling. Higher = crisper outlines, slower bake. 5 is fine for most sprites."));
-                    EditorGUILayout.PropertyField(so.FindProperty("_flickerSuppressOnDistance"),
-                        new GUIContent("Flicker suppress",
-                            "CIELAB distance a pixel must change before it updates between frames. Higher = more suppression, fewer updates."));
+                        new GUIContent("Edge Sharpness",
+                            "How many passes the pixelizer runs to sharpen color boundaries before finalizing each frame. Higher = crisper outlines, slower bake. 5 is a safe default for most characters."));
+                    var flickerProp = so.FindProperty("_flickerSuppressOnDistance");
+                    int currentLevel = FloatToNoiseLevel(flickerProp.floatValue);
+                    int newLevel = EditorGUILayout.Popup(
+                        new GUIContent("Pixel Noise Suppression",
+                            "Prevents individual pixels from randomly switching color between frames. Low is enough for most sprites. Use High or Max if you still see blinking pixels after baking."),
+                        currentLevel, PixelNoiseLabels);
+                    if (newLevel != currentLevel)
+                        flickerProp.floatValue = PixelNoiseLevels[newLevel];
+
                     changed |= EditorGUI.EndChangeCheck();
                     so.ApplyModifiedProperties();
-                }
 
-                layout.DrawGroupGap();
-                EditorGUI.BeginChangeCheck();
-                reusePalette = EditorGUILayout.ToggleLeft(
-                    new GUIContent("Reuse palette across frames",
-                        "Build the IOKM palette once from a seed frame, then LUT-snap all other frames. Faster and more color-consistent. Disable to run full quantization per frame."),
-                    reusePalette);
-                changed |= EditorGUI.EndChangeCheck();
+                    layout.DrawGroupGap();
+                    EditorGUI.BeginChangeCheck();
+                    reusePalette = EditorGUILayout.ToggleLeft(
+                        new GUIContent("Lock color set for whole animation",
+                            "When on, all frames share one color set instead of each frame picking its own. Prevents the overall color scheme from shifting as the animation plays. Pixel Noise Suppression above handles individual blinking pixels -- this handles the whole color scheme."),
+                        reusePalette);
+                    changed |= EditorGUI.EndChangeCheck();
+                }
             }
 
             if (changed)
                 onChanged?.Invoke();
+        }
+
+        private T DrawObjectField<T>(GUIContent label, T value) where T : UnityEngine.Object
+        {
+            EditorGUILayout.LabelField(label, EditorStyles.miniBoldLabel);
+            EditorGUILayout.Space(2f);
+            return (T)EditorGUILayout.ObjectField(value, typeof(T), false);
         }
 
         // Draws pivot as stacked X/Y rows in narrow mode so the left panel keeps wrapping cleanly.
