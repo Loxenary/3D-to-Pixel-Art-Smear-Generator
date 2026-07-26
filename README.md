@@ -25,7 +25,7 @@
 
 <div align="center">
 
-[![Watch the 83-second demo](https://img.youtube.com/vi/aqz-KE-bpKQ/maxresdefault.jpg)](https://youtu.be/aqz-KE-bpKQ)
+[![Watch the 83-second demo](https://img.youtube.com/vi/9PTTPrtBEuo/maxresdefault.jpg)](https://youtu.be/9PTTPrtBEuo)
 
 </div>
 
