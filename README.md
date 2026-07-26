@@ -1,5 +1,6 @@
 <div align="center">
-  <img src=".github/logo.png" alt="3D to Pixel Art with Smear" width="580"/>
+
+[![Watch the 83-second demo](https://img.youtube.com/vi/9PTTPrtBEuo/maxresdefault.jpg)](https://youtu.be/9PTTPrtBEuo)
 
   <br/>
   <br/>
@@ -22,12 +23,6 @@
 </div>
 
 **Smear frames** are those stretched distortions you see on fast attacks in 2D fighting games — normally drawn by hand for every move. This generates them automatically from the 3D mesh.
-
-<div align="center">
-
-[![Watch the 83-second demo](https://img.youtube.com/vi/9PTTPrtBEuo/maxresdefault.jpg)](https://youtu.be/9PTTPrtBEuo)
-
-</div>
 
 ---
 
