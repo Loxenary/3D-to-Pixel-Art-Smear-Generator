@@ -25,9 +25,7 @@
 
 <div align="center">
 
-<video src="https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator/raw/main/.github/tutorial.mp4" controls width="700"></video>
-
-[Watch the 83-second demo](https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator/raw/main/.github/tutorial.mp4) (if the player above does not load)
+[![Watch the 83-second demo](https://img.youtube.com/vi/aqz-KE-bpKQ/maxresdefault.jpg)](https://youtu.be/aqz-KE-bpKQ)
 
 </div>
 
