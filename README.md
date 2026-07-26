@@ -23,7 +23,13 @@
 
 **Smear frames** are those stretched distortions you see on fast attacks in 2D fighting games — normally drawn by hand for every move. This generates them automatically from the 3D mesh.
 
-[Watch the 83-second demo](.github/tutorial.mp4)
+<div align="center">
+
+<video src="https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator/raw/main/.github/tutorial.mp4" controls width="700"></video>
+
+[Watch the 83-second demo](https://github.com/Loxenary/3D-to-Pixel-Art-Smear-Generator/raw/main/.github/tutorial.mp4) (if the player above does not load)
+
+</div>
 
 ---
 
