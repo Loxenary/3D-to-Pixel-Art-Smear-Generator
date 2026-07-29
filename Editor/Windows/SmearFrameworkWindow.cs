@@ -465,10 +465,14 @@ namespace SmearFramework.Editor
         // Set defaults for folder and base name when the fields are still blank.
         void EnsureSmear3DExportDefaults()
         {
-            if (string.IsNullOrWhiteSpace(_smear3DExportFolder))
-                _smear3DExportFolder = _smearOutputConfig != null ? _smearOutputConfig.OutputDirectory : SmearFrameworkPaths.Output;
             if (string.IsNullOrWhiteSpace(_smear3DExportBaseName))
                 _smear3DExportBaseName = BuildActiveBaseName();
+            if (string.IsNullOrWhiteSpace(_smear3DExportFolder))
+            {
+                string root = _smearOutputConfig != null ? _smearOutputConfig.OutputDirectory : SmearFrameworkPaths.Output;
+                // default to a dedicated folder named after the base name so the package gets its own folder instead of dumping into the shared output
+                _smear3DExportFolder = $"{root}/{_smear3DExportBaseName}";
+            }
         }
 
 
@@ -493,7 +497,7 @@ namespace SmearFramework.Editor
                 && _clip != null;
         }
 
-        // Re-run 3D asset generation into exportFolder using baseName so references stay self-contained.
+        // Re-run 3D asset generation into the chosen folder, then drop a matching high-res sheet beside the prefab for gif use.
         SmearScene3DExporter.Result ExportLatestSmear3DResult(string exportFolder, string baseName)
         {
             if (!IsValidProjectAssetFolder(exportFolder))
@@ -506,10 +510,13 @@ namespace SmearFramework.Editor
                 _status = "3D export filename must not be blank.";
                 return null;
             }
+
             var result = SmearScene3DExporter.Export(
-                _characterPrefab, _clip, _state.AvailableSmearMeta, _cachedMotion, exportFolder, baseName);
+                _characterPrefab, _clip, _state.AvailableSmearMeta, _cachedMotion, exportFolder, baseName,
+                _velocityConfig != null ? _velocityConfig.PlaybackSpeed : 1f);
             if (result != null)
             {
+                WriteHighResSheet(exportFolder, baseName);
                 _state.LastSmear3DResult = result;
                 _state.LastSmear3DResultIsTemporary = false;
                 _status = "3D folder exported.";
@@ -518,6 +525,32 @@ namespace SmearFramework.Editor
             }
             _status = "3D export failed -- see console";
             return null;
+        }
+
+        // Save the captured high-res smear frames as a sprite sheet next to the 3D prefab so they can be turned into a gif.
+        void WriteHighResSheet(string folder, string baseName)
+        {
+            var frames = _state.AvailableHighRes;
+            if (frames == null || frames.FrameCount == 0) return;
+
+            var meta = new HighResMetadata
+            {
+                schema_version = 1,
+                prefab = OutputNameUtility.SanitizeSegment(_characterPrefab != null ? _characterPrefab.name : "unknown", "unknown"),
+                clip = OutputNameUtility.SanitizeSegment(_clip != null ? _clip.name : "unnamed", "unnamed"),
+                frame_count = frames.FrameCount,
+                fps = _velocityConfig != null ? _velocityConfig.TargetFps : 12,
+            };
+            var smear = _state.AvailableSmearMeta;
+            if (smear != null)
+            {
+                meta.smear_intensity = (float[])smear.SmearIntensity.Clone();
+                int smeared = 0;
+                for (int f = 0; f < smear.FrameCount; f++)
+                    if (smear.HasSmear[f]) smeared++;
+                meta.smeared_count = smeared;
+            }
+            HighResDiskWriter.Save(folder, baseName, frames, meta);
         }
 
         // Export using the configured folder and base name.
@@ -943,7 +976,8 @@ namespace SmearFramework.Editor
             try
             {
                 var result = SmearScene3DExporter.Export(
-                    _characterPrefab, _clip, _state.AvailableSmearMeta, _cachedMotion, folder, baseName);
+                    _characterPrefab, _clip, _state.AvailableSmearMeta, _cachedMotion, folder, baseName,
+                    _velocityConfig != null ? _velocityConfig.PlaybackSpeed : 1f);
                 if (result != null)
                     _state.LastSmear3DResultIsTemporary = true;
                 return result;
@@ -1375,7 +1409,7 @@ namespace SmearFramework.Editor
                 rows,
                 sheet.width,
                 sheet.height,
-                _velocityConfig != null ? _velocityConfig.TargetFps : 12,
+                _velocityConfig != null ? Mathf.Max(1, Mathf.RoundToInt(_velocityConfig.TargetFps * _velocityConfig.PlaybackSpeed)) : 12,
                 _outputConfig != null ? _outputConfig.CaptureResolution : fw,
                 BuildPreviewSmearMetadata(count),
                 _smearFrameCount > 0,

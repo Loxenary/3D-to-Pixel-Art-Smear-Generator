@@ -121,7 +121,7 @@ namespace SmearFramework.Editor
                         string folder = string.IsNullOrWhiteSpace(_smear3DExportFolder) ? "..." : _smear3DExportFolder.TrimEnd('/');
                         string name   = string.IsNullOrWhiteSpace(_smear3DExportBaseName) ? "..." : _smear3DExportBaseName.Trim();
                         var previewStyle = new GUIStyle(EditorStyles.wordWrappedMiniLabel) { fontStyle = FontStyle.Italic };
-                        EditorGUILayout.LabelField($"→  {folder}/{name}/", previewStyle);
+                        EditorGUILayout.LabelField($"→  {folder}/{name}_smear3D.prefab", previewStyle);
                     }
                     EditorGUILayout.Space(4);
                     bool canExport = _exportSmear3D != null

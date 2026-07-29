@@ -162,7 +162,9 @@ namespace SmearFramework.Editor
         private void DrawSmear3DExportFolderField()
         {
             if (string.IsNullOrWhiteSpace(_smear3DExportFolder))
-                _smear3DExportFolder = SmearFrameworkPaths.Output;
+                _smear3DExportFolder = string.IsNullOrWhiteSpace(_smear3DExportBaseName)
+                    ? SmearFrameworkPaths.Output
+                    : $"{SmearFrameworkPaths.Output}/{_smear3DExportBaseName.Trim()}";
             EditorGUILayout.LabelField(
                 new GUIContent("Export folder",
                     "Unity project folder where the 3D smear prefab, animation clip, and mesh assets will be saved."),
