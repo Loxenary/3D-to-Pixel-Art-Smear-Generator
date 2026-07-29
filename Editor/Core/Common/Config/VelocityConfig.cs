@@ -15,7 +15,7 @@ namespace SmearFramework
         [Tooltip("Frames on each side used to average out velocity spikes.\n1 = raw velocity, may jitter on fast direction changes\n2 = smooth (recommended)\n4 = over-smoothed, quick motions may not trigger smear")]
         [SerializeField, Range(1, 5)] private int _temporalSmoothingWindow = 2;
 
-        [Tooltip("Scales animation playback time during sampling. 1 = normal speed. 2 = twice as fast, higher smear intensity. 0.5 = half speed, lower smear intensity. Useful for evaluation and parameter tuning.")]
+        [Tooltip("Rescales only the output animation frame rate after baking. The frames and smear stay identical -- this just changes how fast the result plays.\n1 = normal speed\n0.5 = half speed, output plays twice as long\n2 = double speed, output plays twice as fast")]
         [SerializeField, Range(0.1f, 5f)] private float _playbackSpeed = 1f;
 
         public int TargetFps => _targetFps;

@@ -25,7 +25,8 @@ namespace SmearFramework.Editor
             SmearFrameData smear,
             MotionData motion,
             string outputDir,
-            string baseName)
+            string baseName,
+            float playbackSpeed = 1f)
         {
             if (characterPrefab == null || sourceClip == null || smear == null || motion == null)
                 return null;
@@ -33,7 +34,8 @@ namespace SmearFramework.Editor
             int frameCount = smear.FrameCount;
             if (frameCount <= 0) return null;
 
-            float fps = motion.Fps > 0f ? motion.Fps : 12f;
+            float fps = motion.Fps > 0f ? motion.Fps : 12f; // sampling rate used to bake the frame meshes -- never scaled
+            float playbackFps = Mathf.Max(1f, fps * playbackSpeed); // output playback rate, scaled by playback speed after the bake
 
             ClearExistingOutput(outputDir, baseName);
             AssetFolderUtility.EnsureAssetFolder(outputDir);
@@ -74,7 +76,7 @@ namespace SmearFramework.Editor
 
             string prefabPath = $"{outputDir}/{baseName}_smear3D.prefab";
 
-            BuildPrefab(prefabPath, baseName, frameMeshes, sourceMaterial, fps,
+            BuildPrefab(prefabPath, baseName, frameMeshes, sourceMaterial, playbackFps,
                 ghostMeshes, ghostMat, lineMeshes, lineMat);
 
             AssetDatabase.SaveAssets();

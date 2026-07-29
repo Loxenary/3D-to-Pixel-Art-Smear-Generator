@@ -29,11 +29,6 @@ namespace SmearFramework.Stages
             var velComputer = new BoneVelocityComputer();
             velComputer.Compute(motionData);
 
-            // scale velocities to simulate faster/slower playback -- higher speed = more frames exceed SpeedThreshold
-            float playbackSpeed = ctx.Config.PlaybackSpeed;
-            if (UnityEngine.Mathf.Abs(playbackSpeed - 1f) > 0.001f)
-                velComputer.ScaleVelocities(motionData, playbackSpeed);
-
             var propagated = velComputer.ComputePropagatedWeights(
                 motionData.SkinWeights,
                 motionData.ParentBoneIndex,

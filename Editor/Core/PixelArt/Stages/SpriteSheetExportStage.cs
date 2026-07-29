@@ -42,6 +42,9 @@ namespace SmearFramework.Stages
             string clipName = ctx.Clip != null ? ctx.Clip.name : "unnamed";
             string targetName = ctx.Target != null ? ctx.Target.name : "smear";
             string baseName = OutputNameUtility.BuildBaseName(targetName, clipName);
+
+            // playback speed is applied here, after every bake phase -- it only rescales the output frame rate, never the smear content
+            int playbackFps = Mathf.Max(1, Mathf.RoundToInt(ctx.Config.TargetFps * ctx.Config.PlaybackSpeed));
             var meta = SpriteSheetMetadataBuilder.Build(
                 targetName,
                 clipName,
@@ -52,7 +55,7 @@ namespace SmearFramework.Stages
                 rows,
                 sheet.width,
                 sheet.height,
-                ctx.Config.TargetFps,
+                playbackFps,
                 ctx.Config.CaptureResolution,
                 ctx.Has("smear_data") ? ctx.Get<SmearFrameData>("smear_data") : null,
                 ctx.Config.EnableElongated || ctx.Config.EnableMultiples || ctx.Config.EnableMotionLines,
@@ -81,7 +84,7 @@ namespace SmearFramework.Stages
                 FrameWidth = fw,
                 FrameHeight = fh,
                 FrameCount = count,
-                FrameDuration = 1f / ctx.Config.TargetFps,
+                FrameDuration = 1f / playbackFps,
                 PngPath = pngPath,
                 JsonPath = jsonPath,
                 PackageFolder = package != null ? package.PackageFolder : null,

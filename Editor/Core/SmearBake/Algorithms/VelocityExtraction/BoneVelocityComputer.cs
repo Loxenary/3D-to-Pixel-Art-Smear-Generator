@@ -181,18 +181,5 @@ namespace SmearFramework.VelocityExtraction
             }
             return 0f;
         }
-        // multiplies all extracted bone velocities by a factor -- used to simulate faster/slower playback
-        public void ScaleVelocities(MotionData data, float factor)
-        {
-            for (int f = 0; f < data.FrameCount; f++)
-                for (int b = 0; b < data.BoneCount; b++)
-                {
-                    var snap = data.Bones[f][b];
-                    snap.linearVelocity *= factor;
-                    snap.angularVelocity *= factor;
-                    data.Bones[f][b] = snap;
-                }
-        }
-
     }
 }
